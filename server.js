@@ -1129,14 +1129,29 @@ app.get('/api/players', async (req, res) => {
 
   const normalizedTeam = team.trim().toLowerCase();
 
+  // Helper: normalizar posição
+  function normalizePos(p) {
+    if (p.pos) return p.pos;
+    const pos = (p.position || '').toLowerCase();
+    if (pos.includes('attack') || pos === 'f') return 'FWD';
+    if (pos.includes('defend') || pos === 'd') return 'DEF';
+    if (pos.includes('midfield') || pos === 'm') return 'MID';
+    if (pos.includes('goal')) return 'GK';
+    return 'MID';
+  }
+
   // Cache em disco (jogadores da API)
   if (diskCache[normalizedTeam]) {
-    return res.json({ players: diskCache[normalizedTeam], source: 'cache' });
+    const cached = diskCache[normalizedTeam].map(p => ({ ...p, pos: normalizePos(p) }));
+    return res.json({ players: cached, source: 'cache' });
   }
 
   // API externa (e salva no cache)
   const apiPlayers = await fetchSquadFromApiFootball(team);
   if (apiPlayers?.length > 0) {
+    // Garantir que todos têm pos normalizado
+    apiPlayers.forEach(p => { p.pos = normalizePos(p); });
+
     // Mescla dados da API com dados curados locais (especialidades + odds precisas)
     const localTeam = playersData[team];
     if (localTeam?.players?.length > 0) {
@@ -1150,6 +1165,7 @@ app.get('/api/players', async (req, res) => {
         if (localMap[key]) {
           p.specialties = localMap[key].specialties;
           p.markets = localMap[key].markets;
+          p.pos = localMap[key].pos || p.pos;
         }
       }
     }
@@ -1161,7 +1177,8 @@ app.get('/api/players', async (req, res) => {
   // Fallback: dados locais se API falhar
   const localData = playersData[team];
   if (localData?.players?.length > 0) {
-    return res.json({ players: localData.players, source: 'local' });
+    const players = localData.players.map(p => ({ ...p, pos: normalizePos(p) }));
+    return res.json({ players, source: 'local' });
   }
 
   return res.json({ players: [], source: 'none' });
@@ -1173,6 +1190,14 @@ app.get('/api/teams', (req, res) => {
   const all = [...local];
   cached.forEach(c => { if (!all.find(l => l.name.toLowerCase() === c.name)) all.push(c); });
   res.json(all);
+});
+
+// ─── Limpar cache (força re-busca da API) ─────
+app.post('/api/clear-cache', (req, res) => {
+  diskCache = {};
+  saveDiskCache();
+  console.log('[Cache] Cache limpo manualmente.');
+  res.json({ ok: true, message: 'Cache limpo com sucesso.' });
 });
 
 // ─── Status do prefetch ───────────────────────

@@ -921,3 +921,24 @@ function showTelegramStatus(text, type) {
     }, 4000);
   }
 }
+
+// LIMPAR CACHE DO SERVIDOR
+async function clearCache() {
+  try {
+    const btn = document.getElementById('btnClearCache');
+    if (btn) btn.textContent = '⏳ Limpando...';
+    
+    const res = await fetch('/api/clear-cache', { method: 'POST' });
+    const data = await res.json();
+    
+    if (data.ok) {
+      if (btn) btn.textContent = '✅ Cache Limpo!';
+      setTimeout(() => { if (btn) btn.textContent = '🗑️ Limpar Cache'; }, 2000);
+    } else {
+      if (btn) btn.textContent = '❌ Erro';
+      setTimeout(() => { if (btn) btn.textContent = '🗑️ Limpar Cache'; }, 2000);
+    }
+  } catch (err) {
+    console.error('Erro ao limpar cache:', err);
+  }
+}
