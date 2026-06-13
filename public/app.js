@@ -501,8 +501,16 @@ async function autoGenerateSelections(isRegen = false) {
           }
 
           // Filtra jogadores com essa especialidade e ordena por odds (menor = melhor)
+          // Para scorer/assist: só FWD e MID (não zagueiro/goleiro)
+          // Para header/outsideBox: todos podem
           let matchingPlayers = playerPool
-            .filter(p => p.specialties && p.specialties.includes(market.key))
+            .filter(p => {
+              if (!p.specialties || !p.specialties.includes(market.key)) return false;
+              if (market.key === 'scorer' || market.key === 'assist') {
+                return p.pos === 'FWD' || p.pos === 'MID';
+              }
+              return true;
+            })
             .sort((a, b) => (a.markets?.[market.key] || 99) - (b.markets?.[market.key] || 99));
           if (matchingPlayers.length === 0) {
             // Se não tem jogador com essa especialidade, pular esta iteração
