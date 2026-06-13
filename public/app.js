@@ -500,15 +500,18 @@ async function autoGenerateSelections(isRegen = false) {
             market = currentMarketTypes[Math.floor(Math.random() * currentMarketTypes.length)];
           }
 
-          // Filtra jogadores com essa especialidade
-          let matchingPlayers = playerPool.filter(p => p.specialties && p.specialties.includes(market.key));
+          // Filtra jogadores com essa especialidade e ordena por odds (menor = melhor)
+          let matchingPlayers = playerPool
+            .filter(p => p.specialties && p.specialties.includes(market.key))
+            .sort((a, b) => (a.markets?.[market.key] || 99) - (b.markets?.[market.key] || 99));
           if (matchingPlayers.length === 0) {
             // Se não tem jogador com essa especialidade, pular esta iteração
             // NÃO forçar jogador que não tem a especialidade
             continue;
           }
 
-          const player = matchingPlayers[Math.floor(Math.random() * matchingPlayers.length)];
+          // Pega o MELHOR jogador (menor odd = mais provável)
+          const player = matchingPlayers[0];
           
           if (usedPlayers.has(player.name)) continue;
           usedPlayers.add(player.name);
@@ -531,9 +534,8 @@ async function autoGenerateSelections(isRegen = false) {
             }
           }
 
-          const baseOdd = player.markets[finalMarket.key] || 3.00;
-          const randomVariation = 0.95 + (Math.random() * 0.1);
-          const finalOdd = parseFloat((baseOdd * randomVariation).toFixed(2));
+          // Usa odds fixa do jogador (sem variação aleatória)
+          const finalOdd = player.markets[finalMarket.key] || 3.00;
 
           selectedSelections.push({
             title: finalMarket.format(player.name),
