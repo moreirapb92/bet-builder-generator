@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tipster Panel & Gerador de Bilhetes bet365</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- CSS Principal -->
+  <link rel="stylesheet" href="styles.css">
+  <!-- html2canvas para captura de tela -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <!-- BARRA LATERAL / CONFIGURAÇÕES -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <span class="badge">COPA 2026</span>
+        <h1>Tipster Panel ⚡</h1>
+        <p>Gerador de bilhetes bet365 com envio direto ao Telegram</p>
+      </div>
+
+      <!-- SEÇÃO 1: JOGOS DO DIA -->
+      <section class="config-section">
+        <div class="section-title">
+          <span class="icon">⚽</span>
+          <h2>Jogos de Destaque</h2>
+        </div>
+        
+        <!-- FILTRO DE DATA -->
+        <div class="date-filter" id="dateFilter">
+          <button class="date-btn active" data-date="today">Hoje</button>
+          <button class="date-btn" data-date="tomorrow">Amanhã</button>
+          <button class="date-btn" data-date="13/06/2026">13/06</button>
+          <button class="date-btn" data-date="14/06/2026">14/06</button>
+          <button class="date-btn" data-date="15/06/2026">15/06</button>
+          <button class="date-btn" data-date="16/06/2026">16/06</button>
+          <button class="date-btn" data-date="all">Todos</button>
+        </div>
+
+        <div class="matches-list" id="matchesList">
+          <p class="loading">Carregando jogos...</p>
+        </div>
+        
+        <div class="custom-match-btn-container">
+          <button class="btn btn-secondary btn-sm" id="btnRefreshFixtures" style="margin-right: 8px;">🔄 Atualizar Jogos</button>
+          <button class="btn btn-secondary btn-sm" id="btnCustomMatch">➕ Criar Jogo Personalizado</button>
+        </div>
+      </section>
+
+      <!-- SEÇÃO 2: DADOS DO PALPITE & BILHETE -->
+      <section class="config-section" id="sectionCustomize" style="display: none;">
+        <div class="section-title">
+          <span class="icon">✏️</span>
+          <h2>Editar Detalhes do Bilhete</h2>
+        </div>
+
+        <!-- Abas para múltiplos bilhetes da mesma partida -->
+        <div class="ticket-selector-container">
+          <label>Selecione a Opção de Bilhete:</label>
+          <div class="ticket-tabs" id="ticketTabs">
+            <button class="tab-btn active" data-index="0">Bilhete 1 (Gols/Asst)</button>
+            <button class="tab-btn" data-index="1">Bilhete 2 (Gols/Asst)</button>
+            <button class="tab-btn" data-index="2">Bilhete 3 (Especiais)</button>
+            <button class="tab-btn" data-index="3">Bilhete 4 (Especiais)</button>
+          </div>
+        </div>
+
+        <div class="form-group-row">
+          <div class="form-group">
+            <label for="inputLeague">Liga/Competição</label>
+            <input type="text" id="inputLeague" value="Copa do Mundo - Grupo C">
+          </div>
+          <div class="form-group">
+            <label for="inputTimeElapsed">Tempo do Jogo (ex: 45:31 ou Intervalo)</label>
+            <input type="text" id="inputTimeElapsed" value="45:00">
+          </div>
+        </div>
+
+        <div class="form-group-row">
+          <div class="form-group">
+            <label for="inputHomeTeam">Time Casa</label>
+            <input type="text" id="inputHomeTeam" value="Brasil">
+          </div>
+          <div class="form-group">
+            <label for="inputAwayTeam">Time Fora</label>
+            <input type="text" id="inputAwayTeam" value="Panamá">
+          </div>
+        </div>
+
+        <div class="form-group-row">
+          <div class="form-group">
+            <label for="inputScore">Placar (ex: 2-0)</label>
+            <input type="text" id="inputScore" value="0-0">
+          </div>
+          <div class="form-group">
+            <label for="inputPossession">Evento em Destaque (ex: Pedro Com Posse)</label>
+            <input type="text" id="inputPossession" value="Jogo Iniciado">
+          </div>
+        </div>
+
+        <div class="form-group-row">
+          <div class="form-group">
+            <label for="inputStake">Valor Apostado (R$)</label>
+            <input type="number" id="inputStake" value="10.00" step="0.50">
+          </div>
+          <div class="form-group">
+            <label for="inputType">Tipo do Bilhete</label>
+            <select id="inputType">
+              <option value="criar_aposta">Criar Aposta</option>
+              <option value="simples">Simples</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group-row">
+          <div class="form-group">
+            <label for="inputStatus">Status do Bilhete</label>
+            <select id="inputStatus">
+              <option value="ganho">Retorno Obtido (Ganho)</option>
+              <option value="cashout">Encerrar Aposta (Em aberto com Cashout)</option>
+              <option value="perdido">Perdido</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="inputUseCredits">
+              <input type="checkbox" id="inputUseCredits"> Créditos de Aposta
+            </label>
+          </div>
+        </div>
+
+        <!-- LISTA DE SELEÇÕES -->
+        <div class="selections-editor">
+          <h3>Seleções/Palpites</h3>
+          <div id="selectionsListContainer">
+            <!-- Injetado via JS -->
+          </div>
+          <button class="btn btn-secondary btn-sm btn-block" id="btnAddSelection">➕ Adicionar Seleção</button>
+        </div>
+
+        <div class="generate-wrapper">
+          <button class="btn btn-primary" id="btnAutoGenerate"><span class="icon">🤖</span> Gerar Nova Combinação (Odd 20+)</button>
+        </div>
+      </section>
+
+      <!-- SEÇÃO 3: INTEGRACAO TELEGRAM -->
+      <section class="config-section">
+        <div class="section-title">
+          <span class="icon">📢</span>
+          <h2>Configurar Telegram & Envio</h2>
+        </div>
+
+        <div class="form-group">
+          <label for="telegramBotToken">Bot Token</label>
+          <input type="password" id="telegramBotToken" placeholder="Insira o Token do seu Bot do Telegram">
+        </div>
+
+        <div class="form-group">
+          <label for="telegramChatId">Chat/Canal ID (ex: @meucanal ou -100xxx)</label>
+          <input type="text" id="telegramChatId" placeholder="ID do Canal ou Chat destinatário">
+        </div>
+
+        <div class="form-group">
+          <label for="telegramMessageText">Mensagem do Telegram (Pré-visualização)</label>
+          <textarea id="telegramMessageText" rows="6" placeholder="Formatação automática da mensagem..."></textarea>
+        </div>
+
+        <div class="action-buttons">
+          <button class="btn btn-secondary" id="btnCopyMessage">📋 Copiar Mensagem</button>
+          <button class="btn btn-success" id="btnSendTelegram">🚀 Enviar para o Telegram</button>
+        </div>
+        <div class="telegram-status" id="telegramStatus"></div>
+      </section>
+
+      <!-- SEÇÃO 4: TUTORIAL TELEGRAM -->
+      <section class="config-section tutorial-section">
+        <div class="section-title" style="margin-bottom: 8px;">
+          <span class="icon">ℹ️</span>
+          <h2>Como criar o Bot do Telegram?</h2>
+        </div>
+        <ol class="tutorial-list">
+          <li>Fale com o <strong>@BotFather</strong> no Telegram e envie <code>/newbot</code> para criar um bot.</li>
+          <li>Copie o <strong>Token de API</strong> fornecido pelo BotFather e cole no campo acima.</li>
+          <li>Crie um canal público ou grupo no Telegram e adicione seu bot recém-criado como <strong>Administrador</strong> (com permissão de postar mensagens).</li>
+          <li>Obtenha o ID do seu canal (se for público, use <code>@nomedocanal</code>; se for privado, você pode encaminhar uma mensagem dele para o bot <code>@RawDataBot</code> para descobrir o ID).</li>
+        </ol>
+      </section>
+    </aside>
+
+    <!-- ÁREA PRINCIPAL / PREVIEW DO BILHETE -->
+    <main class="main-content">
+      <div class="preview-header">
+        <h2>Visualização do Bilhete (Réplica bet365)</h2>
+        <div class="preview-actions">
+          <button class="btn btn-primary" id="btnDownloadImage">📸 Salvar Imagem PNG</button>
+        </div>
+      </div>
+
+      <!-- REPLICA DO BILHETE (COMPILADO VIA CSS) -->
+      <div class="ticket-container-wrapper">
+        <div class="bet365-ticket" id="bet365Ticket">
+          
+          <!-- Cabeçalho de Créditos / Tipo de Aposta -->
+          <div class="ticket-header" id="ticketHeaderArea">
+            <span class="ticket-header-stake" id="ticketHeaderStake">R$10,00 Criar Aposta +</span>
+            <span class="ticket-header-share">Compartilhar</span>
+          </div>
+
+          <!-- Conteúdo Principal do Bilhete -->
+          <div class="ticket-content">
+            
+            <!-- Grupo de Criar Aposta -->
+            <div class="bet-group" id="betGroupContainer">
+              <div class="bet-group-header">
+                <div class="check-icon-circle checked">
+                  <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                </div>
+                <span class="bet-group-title" id="betGroupTitle">CRIAR APOSTA</span>
+                <span class="bet-group-odd" id="betGroupOdd">76.00</span>
+              </div>
+
+              <!-- Lista de palpites dentro do criar aposta -->
+              <div class="bet-selections-list" id="ticketSelectionsList">
+                <!-- Injetado via JS -->
+              </div>
+            </div>
+
+            <!-- Informações da Partida -->
+            <div class="match-details-container">
+              <div class="match-teams-info">
+                <div class="team-row">
+                  <span class="team-flag" id="homeFlag">🇧🇷</span>
+                  <span class="team-name" id="homeName">Brasil</span>
+                  <span class="team-score" id="homeScore">2</span>
+                </div>
+                <div class="team-row">
+                  <span class="team-flag" id="awayFlag">🇵🇦</span>
+                  <span class="team-name" id="awayName">Panamá</span>
+                  <span class="team-score" id="awayScore">1</span>
+                </div>
+              </div>
+
+              <div class="match-time-info">
+                <div class="match-event" id="possessionText">F Escobar Com Posse</div>
+                <div class="match-timer-row">
+                  <span class="match-time" id="matchTimeText">45:31</span>
+                  <div class="match-icons">
+                    <span class="icon-media play-icon">▶</span>
+                    <span class="icon-media field-icon">⚽</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Valores / Rodapé do Bilhete -->
+            <div class="ticket-footer">
+              <div class="footer-row-values">
+                <div class="footer-col">
+                  <span class="label">Aposta</span>
+                  <span class="value" id="footerStake">R$200,00</span>
+                  <span class="credits-label" id="footerCreditsLabel" style="display:none;">R$200,00 Créditos de Aposta</span>
+                </div>
+                <div class="footer-col align-right">
+                  <span class="label" id="footerReturnLabel">Retorno Líquido</span>
+                  <span class="value return-value" id="footerReturnValue">R$15.000,00</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Botão de Ação Inferior (Encerrar Aposta / Ganho) -->
+          <div class="ticket-action-button" id="ticketActionButton">
+            Encerrar Aposta R$15.000,00
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

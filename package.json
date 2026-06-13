@@ -1,0 +1,15 @@
+{
+  "name": "bet-builder-generator",
+  "version": "1.0.0",
+  "description": "Gerador de Bilhetes bet365 e Palpites de Copa do Mundo & Ligas com envio ao Telegram",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  }
+}
