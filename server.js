@@ -480,12 +480,148 @@ function adjustOddsForFavorite(odds, teamName) {
 
 /**
  * Calcula métricas (0-100) para cada mercado baseado em estatísticas reais.
- * Usa per-90 para normalizar minutos jogados.
+ * Usa fórmula detalhada: gols, finalizações, posição, minutos, batedores de bola parada, força do time.
  */
-function calculatePlayerMetrics(posCode, stats) {
+function calculatePlayerMetrics(posCode, stats, teamStrength = 1.0, isStarter = true) {
   const metrics = { scorer: 0, assist: 0, header: 0, outsideBox: 0, card: 0 };
 
-  if (!stats) return metrics;
+  // Batedores de bola parada conhecidos
+  const setPieceTakers = {
+    "vinícius jr":          { penalty: true, freekick: false, corner: false },
+    "vinicius jr":          { penalty: true, freekick: false, corner: false },
+    "raphinha":             { penalty: false, freekick: true, corner: true },
+    "neymar":               { penalty: true, freekick: true, corner: true },
+    "messi":                { penalty: true, freekick: true, corner: true },
+    "cristiano ronaldo":    { penalty: true, freekick: true, corner: false },
+    "ronaldo":              { penalty: true, freekick: true, corner: false },
+    "harry kane":           { penalty: true, freekick: false, corner: false },
+    "kane":                 { penalty: true, freekick: false, corner: false },
+    "mbappé":               { penalty: true, freekick: false, corner: false },
+    "mbappe":               { penalty: true, freekick: false, corner: false },
+    "lewandowski":          { penalty: true, freekick: false, corner: false },
+    "haaland":              { penalty: false, freekick: false, corner: false },
+    "de bruyne":            { penalty: false, freekick: true, corner: true },
+    "kevin de bruyne":      { penalty: false, freekick: true, corner: true },
+    "bruno fernandes":      { penalty: true, freekick: true, corner: true },
+    "marcus rashford":      { penalty: false, freekick: false, corner: false },
+    "bukayo saka":          { penalty: true, freekick: false, corner: true },
+    "saka":                 { penalty: true, freekick: false, corner: true },
+    "james ward-prowse":    { penalty: false, freekick: true, corner: true },
+    "ward-prowse":          { penalty: false, freekick: true, corner: true },
+    "trent alexander-arnold": { penalty: false, freekick: true, corner: true },
+    "alexander-arnold":     { penalty: false, freekick: true, corner: true },
+    "kieran trippier":      { penalty: false, freekick: true, corner: true },
+    "trippier":             { penalty: false, freekick: true, corner: true },
+    "lucas paquetá":        { penalty: false, freekick: true, corner: true },
+    "paquetá":              { penalty: false, freekick: true, corner: true },
+    "paqueta":              { penalty: false, freekick: true, corner: true },
+    "raphinha":             { penalty: false, freekick: true, corner: true },
+    "eder militao":         { penalty: false, freekick: false, corner: false },
+    "danilo":               { penalty: false, freekick: false, corner: false },
+    "alisson":              { penalty: false, freekick: false, corner: false },
+    "ederson":              { penalty: false, freekick: true, corner: false },
+    "casemiro":             { penalty: false, freekick: false, corner: false },
+    "rodri":                { penalty: false, freekick: false, corner: false },
+    "declan rice":          { penalty: false, freekick: false, corner: false },
+    "rice":                 { penalty: false, freekick: false, corner: false },
+    "jude bellingham":      { penalty: false, freekick: false, corner: false },
+    "bellingham":           { penalty: false, freekick: false, corner: false },
+    "jamal musiala":        { penalty: false, freekick: false, corner: false },
+    "musiala":              { penalty: false, freekick: false, corner: false },
+    "florian wirtz":        { penalty: false, freekick: true, corner: true },
+    "wirtz":                { penalty: false, freekick: true, corner: true },
+    "antonie griezmann":    { penalty: false, freekick: true, corner: true },
+    "griezmann":            { penalty: false, freekick: true, corner: true },
+    "kylian mbappé":        { penalty: true, freekick: false, corner: false },
+    "osman dembele":        { penalty: false, freekick: false, corner: false },
+    "dembele":              { penalty: false, freekick: false, corner: false },
+    "luka modric":          { penalty: false, freekick: true, corner: true },
+    "modric":               { penalty: false, freekick: true, corner: true },
+    "mason mount":          { penalty: false, freekick: false, corner: false },
+    "phil foden":           { penalty: false, freekick: false, corner: false },
+    "foden":                { penalty: false, freekick: false, corner: false },
+    "jack grealish":        { penalty: false, freekick: false, corner: false },
+    "grealish":             { penalty: false, freekick: false, corner: false },
+    "ledesma":              { penalty: true, freekick: true, corner: true },
+    "hakan calhanoglu":     { penalty: true, freekick: true, corner: true },
+    "calhanoglu":           { penalty: true, freekick: true, corner: true },
+    "aleksandar mitrovic":  { penalty: true, freekick: false, corner: false },
+    "mitrovic":             { penalty: true, freekick: false, corner: false },
+    "ivan rakitic":         { penalty: false, freekick: true, corner: true },
+    "memphis depay":        { penalty: true, freekick: true, corner: true },
+    "depay":                { penalty: true, freekick: true, corner: true },
+    "enzo fernandez":       { penalty: false, freekick: true, corner: true },
+    "enzo":                 { penalty: false, freekick: true, corner: true },
+    "angel di maria":       { penalty: false, freekick: true, corner: true },
+    "di maria":             { penalty: false, freekick: true, corner: true },
+    "julian alvarez":       { penalty: false, freekick: false, corner: false },
+    "alexis mac allister":  { penalty: false, freekick: true, corner: true },
+    "mac allister":         { penalty: false, freekick: true, corner: true },
+    "andrew robertson":     { penalty: false, freekick: false, corner: true },
+    "robertson":            { penalty: false, freekick: false, corner: true },
+    "scott mctominay":      { penalty: false, freekick: false, corner: false },
+    "mctominay":            { penalty: false, freekick: false, corner: false },
+    "john mcginn":          { penalty: false, freekick: false, corner: false },
+    "mcginn":               { penalty: false, freekick: false, corner: false },
+    "che adams":            { penalty: true, freekick: false, corner: false },
+    "dušan vlahovic":       { penalty: false, freekick: false, corner: false },
+    "vlahovic":             { penalty: false, freekick: false, corner: false },
+    "nicolas jackson":      { penalty: false, freekick: false, corner: false },
+    "alexander isak":       { penalty: true, freekick: false, corner: false },
+    "isak":                 { penalty: true, freekick: false, corner: false },
+    "dominic solanke":      { penalty: false, freekick: false, corner: false },
+    "solanke":              { penalty: false, freekick: false, corner: false },
+    "ollie watkins":        { penalty: false, freekick: false, corner: false },
+    "watkins":              { penalty: false, freekick: false, corner: false },
+    "cole palmer":          { penalty: true, freekick: true, corner: true },
+    "palmer":               { penalty: true, freekick: true, corner: true },
+    "mohamed salah":        { penalty: true, freekick: false, corner: false },
+    "salah":                { penalty: true, freekick: false, corner: false },
+    "sadio mane":           { penalty: false, freekick: false, corner: false },
+    "mane":                 { penalty: false, freekick: false, corner: false },
+    "riyad mahrez":         { penalty: false, freekick: true, corner: true },
+    "mahrez":               { penalty: false, freekick: true, corner: true },
+    "hakim ziyech":         { penalty: false, freekick: true, corner: true },
+    "ziyech":               { penalty: false, freekick: true, corner: true },
+    "achraf hakimi":        { penalty: false, freekick: false, corner: false },
+    "hakimi":               { penalty: false, freekick: false, corner: false },
+    "sofyan amrabat":       { penalty: false, freekick: false, corner: false },
+    "amrabat":              { penalty: false, freekick: false, corner: false },
+    "youssef en-nesyri":    { penalty: false, freekick: false, corner: false },
+    "en-nesyri":            { penalty: false, freekick: false, corner: false },
+    "wilson isidor":        { penalty: false, freekick: false, corner: false },
+    "isidor":               { penalty: false, freekick: false, corner: false },
+    "duckens nazon":        { penalty: false, freekick: false, corner: false },
+    "nazon":                { penalty: false, freekick: false, corner: false },
+    "jean-ricner bellegarde": { penalty: false, freekick: true, corner: true },
+    "bellegarde":           { penalty: false, freekick: true, corner: true },
+  };
+
+  function hasSetPiece(name, type) {
+    if (!name) return false;
+    const key = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return setPieceTakers[key]?.[type] || false;
+  }
+
+  // Fatores de força do time: time forte (strength < 1) = mais gols esperados
+  const teamFactor = 1 / (teamStrength || 1.0);
+  // Fator de titular: titulares têm mais tempo em campo
+  const starterBonus = isStarter ? 1.2 : 1.0;
+
+  if (!stats) {
+    // Sem stats: usar posição e time como base
+    const baseScore = posCode === 'FWD' ? 40 : posCode === 'MID' ? 30 : 15;
+    metrics.scorer = Math.min(100, Math.round(baseScore * teamFactor * starterBonus));
+    metrics.assist = Math.min(100, Math.round((posCode === 'MID' ? 35 : posCode === 'FWD' ? 30 : 10) * teamFactor * starterBonus));
+    metrics.header = Math.min(100, Math.round((posCode === 'DEF' ? 40 : posCode === 'FWD' ? 25 : 10) * starterBonus));
+    metrics.outsideBox = Math.min(100, Math.round((posCode === 'MID' ? 30 : posCode === 'FWD' ? 25 : 5) * teamFactor * starterBonus));
+    metrics.card = Math.min(100, Math.round((posCode === 'DEF' ? 50 : posCode === 'MID' ? 40 : 20) * starterBonus));
+    return metrics;
+  }
+
+  if (!stats?.games?.minutes || stats.games.minutes <= 0) {
+    return metrics;
+  }
 
   const goals      = stats?.goals?.total      || 0;
   const assists    = stats?.goals?.assists     || 0;
@@ -510,38 +646,89 @@ function calculatePlayerMetrics(posCode, stats) {
   const awPer90 = aerialWon * p90;
   const dwPer90 = duelsWon * p90;
 
-  // ─── SCORER ─────────────────────────────────
-  // Peso maior para FWD, menor para DEF
-  const scorerWeight = posCode === 'FWD' ? 1.0 : posCode === 'MID' ? 1.8 : 4.0;
-  // gPer90: 0.5+ g/90 é excelente para FWD
-  let scorerRaw = gPer90 * 30 + soPer90 * 3 + (goals > 0 ? Math.min(15, shots / goals * 2) : 0);
-  // Se fez gols em jogos importantes (minutos baixos mas gols altos), dar boost
-  if (goals >= 10) scorerRaw += 20;
-  else if (goals >= 5) scorerRaw += 10;
-  metrics.scorer = Math.min(100, Math.round(scorerRaw / scorerWeight));
+  // ─── SCORER (gols) ────────────────────────────
+  // Fatores: gols/jogo, finalizações, finalizações no alvo, pênalti, titular, time forte
+  let sScore = 0;
+  // gPer90 * 35: até 3.5 g/90 → 122.5 pontos (peso alto)
+  sScore += gPer90 * 35;
+  // finalizações/jogo * 8
+  sScore += sPer90 * 8;
+  // finalizações no alvo/jogo * 12
+  sScore += soPer90 * 12;
+  // Bônus por volume absoluto de gols
+  if (goals >= 20) sScore += 25;
+  else if (goals >= 10) sScore += 15;
+  else if (goals >= 5) sScore += 8;
+  // Batedor de pênalti
+  if (hasSetPiece(stats?.player?.name, 'penalty')) sScore += 25;
+  // Time favorito + titular
+  sScore *= teamFactor * starterBonus;
+  metrics.scorer = Math.min(100, Math.round(sScore));
 
-  // ─── ASSIST ─────────────────────────────────
-  const assistWeight = posCode === 'FWD' ? 1.0 : posCode === 'MID' ? 1.2 : 3.0;
-  let assistRaw = aPer90 * 30 + kpPer90 * 3;
-  if (assists >= 8) assistRaw += 20;
-  else if (assists >= 4) assistRaw += 10;
-  metrics.assist = Math.min(100, Math.round(assistRaw / assistWeight));
+  // ─── ASSIST ───────────────────────────────────
+  // Fatores: assistências/jogo, passes decisivos, chances criadas, escanteio, falta, titular
+  let aScore = 0;
+  aScore += aPer90 * 35;
+  aScore += kpPer90 * 8;
+  // Bônus por volume
+  if (assists >= 15) aScore += 25;
+  else if (assists >= 8) aScore += 15;
+  else if (assists >= 4) aScore += 8;
+  // Batedor de escanteio
+  if (hasSetPiece(stats?.player?.name, 'corner')) aScore += 20;
+  // Batedor de falta
+  if (hasSetPiece(stats?.player?.name, 'freekick')) aScore += 15;
+  aScore *= teamFactor * starterBonus;
+  metrics.assist = Math.min(100, Math.round(aScore));
 
-  // ─── HEADER ─────────────────────────────────
-  const headerWeight = posCode === 'DEF' ? 1.0 : posCode === 'FWD' ? 1.2 : 1.5;
-  let headerRaw = awPer90 * 4 + gPer90 * 8 + (duelsWon >= 80 ? 15 : duelsWon >= 40 ? 8 : 0);
-  metrics.header = Math.min(100, Math.round(headerRaw / headerWeight));
+  // ─── HEADER (gol de cabeça) ───────────────────
+  // DEF/FWD têm mais chances. Duelos aéreos, gols.
+  let hScore = 0;
+  // Duelos aéreos ganhos/jogo * 6
+  hScore += awPer90 * 6;
+  // Gols (proxy para gols de cabeça) * 15
+  hScore += gPer90 * 15;
+  // Duelos ganhos (força física)
+  if (dwPer90 >= 5) hScore += 15;
+  // Bônus por posição: zagueiros e atacantes
+  if (posCode === 'DEF') hScore += 20;
+  else if (posCode === 'FWD') hScore += 15;
+  // Volume absoluto de duelos aéreos
+  if (aerialWon >= 50) hScore += 15;
+  else if (aerialWon >= 25) hScore += 8;
+  hScore *= starterBonus;
+  metrics.header = Math.min(100, Math.round(hScore));
 
-  // ─── OUTSIDE BOX ────────────────────────────
-  const obWeight = 1.0;
-  // Quanto mais chutes, maior chance de marcar de fora. ShotsOn é proxy para chutes no alvo
-  let obRaw = sPer90 * 3 + gPer90 * 10 + (shots >= 30 ? 15 : shots >= 15 ? 8 : 0);
-  metrics.outsideBox = Math.min(100, Math.round(obRaw / obWeight));
+  // ─── OUTSIDE BOX (gol de fora da área) ──────
+  // MID/FWD chutam mais de fora. Volume de chutes, gols, bola parada.
+  let oScore = 0;
+  // Chutes totais/jogo * 5 (volume indica chutes de longe)
+  oScore += sPer90 * 5;
+  // Gols (proxy para gols de fora)
+  oScore += gPer90 * 12;
+  // Chutes no alvo
+  oScore += soPer90 * 3;
+  // Bônus por posição
+  if (posCode === 'MID') oScore += 15;
+  else if (posCode === 'FWD') oScore += 10;
+  // Batedor de falta → mais chances de chute direto
+  if (hasSetPiece(stats?.player?.name, 'freekick')) oScore += 15;
+  // Volume absoluto de chutes
+  if (shots >= 40) oScore += 15;
+  else if (shots >= 20) oScore += 8;
+  oScore *= teamFactor * starterBonus;
+  metrics.outsideBox = Math.min(100, Math.round(oScore));
 
-  // ─── CARD ───────────────────────────────────
-  const cardWeight = posCode === 'DEF' ? 1.0 : posCode === 'MID' ? 1.2 : 1.8;
-  let cardRaw = ycPer90 * 20 + redCards * 15 + dwPer90 * 0.5;
-  metrics.card = Math.min(100, Math.round(cardRaw / cardWeight));
+  // ─── CARD (cartão) ───────────────────────────
+  // DEF mais cartão. Duelos, cartões.
+  let cScore = 0;
+  cScore += ycPer90 * 25;
+  cScore += redCards * 20;
+  cScore += dwPer90 * 0.8;
+  if (posCode === 'DEF') cScore += 15;
+  else if (posCode === 'MID') cScore += 10;
+  cScore *= starterBonus;
+  metrics.card = Math.min(100, Math.round(cScore));
 
   return metrics;
 }
@@ -566,13 +753,16 @@ function metricToOdd(score) {
  * Classifica um jogador com base em métricas calculadas das estatísticas reais.
  * Usa dados da API-Football para determinar quem é mais propenso a cada mercado.
  */
-function classifyPlayer(position, stats) {
+function classifyPlayer(position, stats, playerName = '', teamStrength = 1.0, isStarter = true) {
   const posUpper = (position || '').toUpperCase();
   let posCode = 'MID';
   if (posUpper === 'ATTACKER' || posUpper === 'F') posCode = 'FWD';
   else if (posUpper === 'DEFENDER' || posUpper === 'D') posCode = 'DEF';
 
-  const metrics = calculatePlayerMetrics(posCode, stats);
+  // Injetar playerName nas stats para o setPiece lookup
+  if (stats && playerName && !stats.player) stats.player = { name: playerName };
+
+  const metrics = calculatePlayerMetrics(posCode, stats, teamStrength, isStarter);
 
   // Especialidades: baseadas na métrica (≥ 35 para considerar relevante)
   const specialties = [];
@@ -748,7 +938,7 @@ async function fetchSquadFromApiFootball(teamName) {
         continue;
       }
       
-      const { posCode, specialties, markets, metrics } = classifyPlayer(position, stats);
+      const { posCode, specialties, markets, metrics } = classifyPlayer(position, stats, starterName, teamStrength?.[teamName] || 1.0, true);
       
       players.push({
         name: starterName,
@@ -809,7 +999,7 @@ async function fetchSquadFromApiFootball(teamName) {
       .map(p => {
         const stats = statsMap[p.name] || null;
         const minutes = stats?.games?.minutes || 0;
-        const { posCode, specialties, markets, metrics } = classifyPlayer(p.position, stats);
+        const { posCode, specialties, markets, metrics } = classifyPlayer(p.position, stats, p.name, teamStrength?.[teamName] || 1.0, true);
         return { name: p.name, pos: posCode, specialties, markets, metrics: stats ? metrics : null, minutes };
       });
 

@@ -475,12 +475,12 @@ async function autoGenerateSelections(isRegen = false) {
           if (alt) marketKey = alt;
         }
 
-        const player = pickBest(pool, marketKey, usedNames);
+        const player = pickBest(pool, marketKey, usedNames, isHome ? awayStrength : homeStrength);
         if (!player) {
           // Tentar mercado alternativo
           const altKey = marketOrder.find(m => m !== marketKey);
           if (altKey) {
-            const altPlayer = pickBest(pool, altKey, usedNames);
+            const altPlayer = pickBest(pool, altKey, usedNames, isHome ? awayStrength : homeStrength);
             if (altPlayer) {
               usedNames.add(altPlayer.name);
               usedMarkets.add(altKey);
@@ -507,19 +507,21 @@ async function autoGenerateSelections(isRegen = false) {
         const fPool = fSide === 'home' ? homePlayers : awayPlayers;
         const uPool = fSide === 'home' ? awayPlayers : homePlayers;
 
-        const best = (pool, key) => pickBest(pool, key, new Set());
-        const odd = (pool, key) => best(pool, key)?.markets?.[key] || (key === 'scorer' ? 2.50 : key === 'assist' ? 3.50 : key === 'header' ? 7.00 : 8.50);
+        const fOpp = fSide === 'home' ? awayStrength : homeStrength;
+        const uOpp = fSide === 'home' ? homeStrength : awayStrength;
+        const best = (pool, key, opp = 1.0) => pickBest(pool, key, new Set(), opp);
+        const odd = (pool, key) => best(pool, key, 1.0)?.markets?.[key] || (key === 'scorer' ? 2.50 : key === 'assist' ? 3.50 : key === 'header' ? 7.00 : 8.50);
 
         if (isGoalAssist) {
           selectedSelections = [
-            { title: `Para ${best(fPool, 'scorer')?.name || 'Jogador'} marcar`, market: "Para Marcar", odd: odd(fPool, 'scorer'), status: 'ganho', subplus: true },
-            { title: `${best(fPool, 'assist')?.name || 'Jogador'} - Para Dar Assistência`, market: "Jogador a Dar Assistência", odd: odd(fPool, 'assist'), status: 'ganho', subplus: true },
-            { title: `Para ${best(uPool, 'scorer')?.name || 'Jogador'} marcar`, market: "Para Marcar", odd: odd(uPool, 'scorer'), status: 'ganho', subplus: false }
+            { title: `Para ${best(fPool, 'scorer', fOpp)?.name || 'Jogador'} marcar`, market: "Para Marcar", odd: odd(fPool, 'scorer'), status: 'ganho', subplus: true },
+            { title: `${best(fPool, 'assist', fOpp)?.name || 'Jogador'} - Para Dar Assistência`, market: "Jogador a Dar Assistência", odd: odd(fPool, 'assist'), status: 'ganho', subplus: true },
+            { title: `Para ${best(uPool, 'scorer', uOpp)?.name || 'Jogador'} marcar`, market: "Para Marcar", odd: odd(uPool, 'scorer'), status: 'ganho', subplus: false }
           ];
         } else {
           selectedSelections = [
-            { title: `Para ${best(fPool, 'header')?.name || 'Jogador'} marcar um Cabeceio`, market: "Marcar de Cabeça", odd: odd(fPool, 'header'), status: 'ganho', subplus: true },
-            { title: `Para ${best(fPool, 'outsideBox')?.name || 'Jogador'} marcar de Fora da Área`, market: "Marcar de Fora da Área", odd: odd(fPool, 'outsideBox'), status: 'ganho', subplus: false }
+            { title: `Para ${best(fPool, 'header', fOpp)?.name || 'Jogador'} marcar um Cabeceio`, market: "Marcar de Cabeça", odd: odd(fPool, 'header'), status: 'ganho', subplus: true },
+            { title: `Para ${best(fPool, 'outsideBox', fOpp)?.name || 'Jogador'} marcar de Fora da Área`, market: "Marcar de Fora da Área", odd: odd(fPool, 'outsideBox'), status: 'ganho', subplus: false }
           ];
         }
         combinedOdd = selectedSelections.reduce((a, s) => a * s.odd, 1);
@@ -537,13 +539,18 @@ async function autoGenerateSelections(isRegen = false) {
   }
 }
 
-// Helper: obter métrica (0-100) para um jogador e mercado
-function getMetric(p, key) {
-  return p.metrics?.[key] ?? (p.markets?.[key] ? Math.max(0, Math.min(100, 100 - p.markets[key] * 3)) : 0);
+// Helper: obter métrica (0-100) para um jogador e mercado, com ajuste por adversário
+function getMetric(p, key, opponentStrength = 1.0) {
+  const base = p.metrics?.[key] ?? (p.markets?.[key] ? Math.max(0, Math.min(100, 100 - p.markets[key] * 3)) : 0);
+  // opponentStrength: < 1 = adversário forte (reduz score), > 1 = adversário fraco (aumenta score)
+  if (key === 'scorer' || key === 'assist' || key === 'header' || key === 'outsideBox') {
+    return Math.min(100, Math.round(base * opponentStrength));
+  }
+  return base;
 }
 
 // Helper: pegar o melhor jogador de um time para um mercado (sem repetir nome)
-function pickBest(players, marketKey, forbiddenNames = new Set()) {
+function pickBest(players, marketKey, forbiddenNames = new Set(), opponentStrength = 1.0) {
   const valid = players
     .filter(p => {
       if (forbiddenNames.has(p.name)) return false;
@@ -552,13 +559,13 @@ function pickBest(players, marketKey, forbiddenNames = new Set()) {
       }
       return true;
     })
-    .sort((a, b) => getMetric(b, marketKey) - getMetric(a, marketKey));
+    .sort((a, b) => getMetric(b, marketKey, opponentStrength) - getMetric(a, marketKey, opponentStrength));
   if (valid.length > 0) return valid[0];
   // Fallback: liberar restrição para header/outsideBox
   if (marketKey === 'header' || marketKey === 'outsideBox') {
     const fb = players
       .filter(p => !forbiddenNames.has(p.name))
-      .sort((a, b) => getMetric(b, marketKey) - getMetric(a, marketKey));
+      .sort((a, b) => getMetric(b, marketKey, opponentStrength) - getMetric(a, marketKey, opponentStrength));
     return fb[0] || null;
   }
   return null;

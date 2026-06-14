@@ -12,6 +12,13 @@ confirmed-starters-*.json
 confirmed-starters-code.js
 confirmed-starters-generated.json
 confirmed-starters-final.json
+scripts/extract-*.js
+scripts/final-map*.js
+scripts/generate-*.js
+scripts/map-*.js
+scripts/parse-*.js
+scripts/scrape-*.js
+scripts/test-*.js
 *.log
 .DS_Store
 Thumbs.db
