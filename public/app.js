@@ -363,6 +363,10 @@ async function autoGenerateSelections(isRegen = false) {
     let homePlayers = homeRes.players || [];
     let awayPlayers = awayRes.players || [];
 
+    console.log("=== DEBUG INÍCIO ===");
+    console.log("Partida selecionada:", home, "x", away);
+    console.log("Jogadores brutos recebidos - casa:", homePlayers?.length, "fora:", awayPlayers?.length);
+
     if (homePlayers.length === 0) {
       alert(`⚠️ Nenhum jogador encontrado para "${home}".`);
       return;
@@ -371,6 +375,9 @@ async function autoGenerateSelections(isRegen = false) {
       alert(`⚠️ Nenhum jogador encontrado para "${away}".`);
       return;
     }
+
+    console.log("Exemplos casa:", homePlayers.slice(0, 3).map(p => `${p.name}(${p.pos})`));
+    console.log("Exemplos fora:", awayPlayers.slice(0, 3).map(p => `${p.name}(${p.pos})`));
 
 // ─── NORMALIZAÇÃO DE NOMES DE TIMES ─────────────────
 // A API retorna nomes em inglês (ex: "Turkey", "Australia") mas
@@ -604,18 +611,20 @@ function normalizeTeamName(name) {
       //  FUNÇÃO AUXILIAR: tentar preencher uma posição do bilhete
       // ═══════════════════════════════════════════════════
       function tryPick(pool, marketKey, usedNames, opponentStrength) {
+        console.log(`    [tryPick] pool=${pool.length}j market=${marketKey} forbidden=${usedNames.size}`);
         // 1) Tentar modo estrito (FWD/MID para scorer/assist)
         let p = pickBest(pool, marketKey, usedNames, opponentStrength, false);
-        if (p) return p;
+        if (p) { console.log(`    [tryPick] → estrito: ${p.name}`); return p; }
         // 2) Tentar modo flexível (qualquer posição)
         p = pickBest(pool, marketKey, usedNames, opponentStrength, true);
-        if (p) return p;
+        if (p) { console.log(`    [tryPick] → flexível: ${p.name}`); return p; }
         // 3) Tentar com qualquer mercado alternativo
         for (const altKey of allowedKeys) {
           if (altKey === marketKey) continue;
           p = pickBest(pool, altKey, usedNames, opponentStrength, true);
-          if (p) return p;
+          if (p) { console.log(`    [tryPick] → alternativo(${altKey}): ${p.name}`); return p; }
         }
+        console.log(`    [tryPick] → NADA encontrado`);
         return null;
       }
 
@@ -631,10 +640,13 @@ function normalizeTeamName(name) {
       if (isFav === 'home') teamOpponent.home = awayStrength;
 
       // Preencher bilhete seguindo teamOrder
+      console.log(`  [DEBUG] Bilhete ${tIdx} - Iniciando preenchimento teamOrder=[${teamOrder.join(',')}] marketOrder=[${marketOrder.join(',')}]`);
       for (let i = 0; i < numSelections; i++) {
         const side = teamOrder[i % teamOrder.length];
         const poolForSide = side === 'home' ? homePlayers : awayPlayers;
         const opponentStr = side === 'home' ? awayStrength : homeStrength;
+
+        console.log(`  [DEBUG] Posição ${i}: side=${side} poolSize=${poolForSide.length} opponentStr=${opponentStr}`);
 
         // Determinar mercado desejado
         const desiredMarket = marketOrder[i % marketOrder.length];
@@ -644,10 +656,15 @@ function normalizeTeamName(name) {
           const alt = marketOrder.find(m => !usedThisTicket.has(m));
           if (alt) marketKey = alt;
         }
+        console.log(`  [DEBUG] mercado=desejado:${desiredMarket} escolhido:${marketKey} jaUsados=${[...usedThisTicket].join(',')||'nenhum'}`);
 
         // Buscar jogador
         const player = tryPick(poolForSide, marketKey, usedNames, opponentStr);
-        if (!player) continue;
+        if (!player) {
+          console.log(`  [DEBUG] NENHUM jogador encontrado para side=${side} market=${marketKey}`);
+          continue;
+        }
+        console.log(`  [DEBUG] Selecionado: ${player.name} (pos=${player.pos}) mercado=${marketKey} odd=${player.markets?.[marketKey]}`);
 
         usedNames.add(player.name);
         const mt = marketTypes.find(m => m.key === marketKey);
@@ -665,6 +682,7 @@ function normalizeTeamName(name) {
         });
         combinedOdd *= oddVal;
       }
+      console.log(`  [DEBUG] Bilhete ${tIdx} - após tentativa principal: ${selectedSelections.length}/${numSelections} seleções`);
 
       // ─── FALLBACK 1: completar com mercado alternativo no mesmo time ───
       if (selectedSelections.length < numSelections) {
@@ -703,6 +721,7 @@ function normalizeTeamName(name) {
 
       // ─── FALLBACK 2: ignorar time, pegar melhores globais ───
       if (selectedSelections.length < numSelections) {
+        console.log(`  [DEBUG] Fallback 2: ${selectedSelections.length}/${numSelections} - usando ${homePlayers.length + awayPlayers.length} jogadores globais`);
         const allPlayers = [...homePlayers, ...awayPlayers];
         const usedThisTicket = new Set(selectedSelections.map(s => s.marketKey).filter(Boolean));
         const allMarkets = isGoalAssist ? ['scorer', 'assist'] : ['header', 'outsideBox', 'card'];
