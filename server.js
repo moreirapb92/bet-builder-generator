@@ -3,6 +3,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const fs = require('fs');
 const path = require('path');
+const cron = require('node-cron');
 const playersData = require('./playersData');
 
 dotenv.config();
@@ -58,258 +59,169 @@ let prefetchStatus = { running: false, total: 0, done: 0, current: '', errors: [
 //  SEM GOLEIROS (filtrados no codigo)
 // ─────────────────────────────────────────────
 const confirmedStarters = {
-  // GRUPO A
-  "México": [
-    "Sánchez", "Montes", "Vásquez", "Gallardo",
-    "Pineda", "Edson Álvarez", "Fidalgo",
-    "Alexis Vega", "Jiménez", "Quiñones"
-  ],
-  "África do Sul": [
-    "Mudau", "Sibisi", "Ndamane", "Modiba",
-    "Sithole", "Mokoena",
-    "Apollis", "Zwane", "Mofokeng", "Foster"
-  ],
-  "Coreia do Sul": [
-    "Seol", "Min-jae Kim", "Han-beom Lee", "Tae-seok Lee",
-    "Wang", "Castrop",
-    "Kang-in Lee", "Jae-sung Lee", "Bae", "Son"
-  ],
-  "Tchéquia": [
-    "Chaloupek", "Hranac", "Krejci",
-    "Zeleny", "Soucek", "Darida", "Coufal",
-    "Provod", "Sulc", "Schick"
-  ],
-  // GRUPO B
-  "Canadá": [
-    "Sigur", "Bombito", "Jones", "Laryea",
-    "Buchanan", "Koné", "Eustaquio", "Davies",
-    "Oluwaseyi", "Jonathan David"
-  ],
-  "Bósnia": [
-    "Dedic", "Katic", "Muharemovic", "Kolasinac",
-    "Bajraktarevic", "Sunjic", "Tahirovic", "Memic",
-    "Demirovic", "Dzeko"
-  ],
-  "Catar": [
-    "Al-Oui", "Khoukhi", "Pedro Miguel", "Al-Amin",
-    "Boudiaf", "Fathy", "Laye",
-    "Edmilson Junior", "Almoez Ali", "Afif"
-  ],
-  "Suíça": [
-    "Widmer", "Akanji", "Elvedi", "Rodriguez",
-    "Freuler", "Xhaka", "Rieder",
-    "Ndoye", "Embolo", "Vargas"
-  ],
-  // GRUPO C
-  "Brasil": [
-    "Ibañez", "Marquinhos", "Gabriel Magalhães", "Douglas Santos",
-    "Casemiro", "Bruno Guimarães", "Lucas Paquetá",
-    "Raphinha", "Vinícius Jr.", "Igor Thiago"
-  ],
-  "Marrocos": [
-    "Hakimi", "Diop", "Aguerd", "Salah-Eddine",
-    "Ounahi", "El Aynaoui",
-    "Brahim Díaz", "Saibari", "Talbi", "El Kaabi"
-  ],
-  "Haiti": [
-    "Arcus", "Ade", "Duverne", "Experience",
-    "Deedson", "Bellegarde", "Pierre",
-    "Isidor", "Nazon", "Providence"
-  ],
-  "Escócia": [
-    "Hickey", "Hanley", "McKenna", "Robertson",
-    "Ferguson",
-    "Gannon-Doak", "Christie", "McTominay", "McGinn", "Adams"
-  ],
-  // GRUPO D
-  "Estados Unidos": [
-    "Freeman", "Richards", "Trusty", "Antonee Robinson",
-    "McKennie", "Berhalter", "Adams",
-    "Weah", "Balogun", "Pulisic"
-  ],
-  "Paraguai": [
-    "Caceres", "G. Gomez", "Alderete", "Alonso",
-    "D. Gomez", "Ojeda", "Bobadilla", "Almiron",
-    "Enciso", "Avalos"
-  ],
-  "Austrália": [
-    "Italiano", "Degenek", "Souttar", "Circati", "Bos",
-    "Metcalfe", "Devlin", "O'Neill", "Irankunda", "Touré"
-  ],
-  "Turquia": [
-    "Demiral", "Kabak", "Bardakci",
-    "Celik", "Calhanoglu", "Kokcu", "Ozer",
-    "Guler", "Yildiz", "Akturkoglu"
-  ],
-  // GRUPO E
-  "Alemanha": [
-    "Kimmich", "Tah", "Schlotterbeck", "Raum",
-    "Pavlovic", "Goretzka",
-    "Sané", "Musiala", "Wirtz", "Havertz"
-  ],
-  "Costa do Marfim": [
-    "Doué", "Koussonou", "Ndicka", "Konan",
-    "Kessié", "Sangaré", "Oulai",
-    "Pepé", "Guessand", "Diomandé"
-  ],
-  "Equador": [
-    "Preciado", "Ordonez", "Pacho", "Hincapié",
-    "Vite", "Caicedo", "Castillo",
-    "Yeboah", "Valencia", "Angulo"
-  ],
-  "Curaçao": [
-    "Sambo", "Van Ejma", "Obispo", "Floranus",
-    "J. Bacuna", "Comenancia", "L. Bacuna",
-    "Chong", "Locadia", "Gorré"
-  ],
-  // GRUPO F
-  "Espanha": [
-    "Llorente", "Cubarsí", "Laporte", "Cucurella",
-    "Pedri", "Rodri", "Fabián Ruiz",
-    "Yamal", "Oyarzabal", "Nico Williams"
-  ],
-  "Inglaterra": [
-    "Reece James", "Guehi", "Konsa", "O'Reilly",
-    "Anderson", "Declan Rice",
-    "Saka", "Bellingham", "Eze", "Harry Kane"
-  ],
-  "Senegal": [
-    "Diatta", "Koulibaly", "Niakhaté", "Jakobs",
-    "Idrissa Gueye", "Pape Gueye",
-    "Ismaila Sarr", "Iliman Ndiaye", "Mané", "Jackson"
-  ],
-  "Suécia": [
-    "Starfelt", "Lagerbielke", "Lindelof",
-    "Svensson", "Karlstrom", "Ayari", "Gudmundsson",
-    "Nygren", "Elanga", "Gyokeres"
-  ],
-  // GRUPO G
-  "Uruguai": [
-    "Valera", "Giménez", "Ronald Araújo", "Olivera",
-    "Valverde", "Ugarte", "Bentancur",
-    "Canobbio", "Darwin Núñez", "Rodríguez"
-  ],
-  "Colômbia": [
-    "Muñoz", "Sánchez", "Mina", "Mojica",
-    "Lerma", "Ríos",
-    "Arias", "James Rodríguez", "Luis Díaz", "Suárez"
-  ],
-  "Egito": [
-    "Ibrahim", "Abdelmaguif", "Rabia",
-    "Hany", "Ateya", "Lasheen", "Fatouh", "Ashour",
-    "Salah", "Marmoush"
-  ],
-  "Irã": [
-    "Yousefi", "Kanaani", "Khalilzadeh", "Mohammadi",
-    "Ezatolahi", "Ghoddos",
-    "Jahanbakhsh", "Ghayedi", "Mohebi", "Taremi"
-  ],
-  // GRUPO H
-  "Holanda": [
-    "Dumfries", "Van Dijk", "Aké", "Van de Ven",
-    "De Jong", "Gravenberch",
-    "Malen", "Reijnders", "Gakpo", "Depay"
-  ],
-  "Bélgica": [
-    "Castagne", "Debast", "Theate", "De Cuyper",
-    "Tielemans", "Onana",
-    "Doku", "De Bruyne", "Trossard", "De Ketelaere"
-  ],
-  "Tunísia": [
-    "Valery", "Bronn", "Talbi", "Abdi",
-    "Gharbi", "Skhiri", "Hannibal",
-    "Achouri", "Mastouri", "Tounekti"
+  "Argélia": [
+    "Belghali", "Belaid", "Bensebaini", "Ait-Nouri", "Zerrouki", "Boudaoui", "Mahrez", "Aouar", "Chaibi", "Gouiri"
   ],
   "Arábia Saudita": [
-    "Boushal", "Tambakti", "Al-Amri", "Al-Harbi",
-    "Kanno", "Al-Khaibari", "N. Al-Dawsari",
-    "Mandash", "Al-Buraikan", "S. Al-Dawsari"
+    "Boushal", "Tambakti", "Al-Amri", "Al-Harbi", "Kanno", "Al-Khaibari", "N. Al-Dawsari", "Mandash", "Al-Buraikan", "S. Al-Dawsari"
   ],
-  // GRUPO I
-  "França": [
-    "Koundé", "Saliba", "Upamecano", "Theo Hernandez",
-    "Rabiot", "Tchouaméni",
-    "Dembélé", "Olise", "Doué", "Mbappé"
-  ],
-  "Portugal": [
-    "Cancelo", "Ruben Dias", "Inácio", "Nuno Mendes",
-    "João Neves", "Vitinha", "Bruno Fernandes",
-    "Bernardo Silva", "Cristiano Ronaldo", "João Félix"
-  ],
-  "Iraque": [
-    "Hussein Ali", "Sulaka", "Tahseen", "Doski",
-    "Al-Ammari", "Bayesh",
-    "Ali Jasim", "Iqbal", "Amyn", "Aymen Hussein"
-  ],
-  "Noruega": [
-    "Ryerson", "Heggem", "Ostigard", "Wolfe",
-    "Thorstvedt", "Berg", "Berge",
-    "Sorloth", "Haaland", "Nusa"
-  ],
-  // GRUPO J
   "Argentina": [
-    "Molina", "Otamendi", "Cristian Romero", "Tagliafico",
-    "Mac Allister", "Paredes", "Enzo Fernández",
-    "Messi", "Julian Álvarez", "Thiago Almada"
+    "Molina", "Otamendi", "Romero", "Tagliafico", "Mac Allister", "Paredes", "Fernandez", "Messi", "Alvarez", "Almada"
+  ],
+  "Austrália": [
+    "Italiano", "Degenek", "Souttar", "Circati", "Bos", "Metcalfe", "Devlin", "O'Neill", "Irankunda", "Touré"
   ],
   "Áustria": [
-    "Laimer", "Lienhart", "Alaba", "Mwene",
-    "X. Schlager", "Seiwald",
-    "Wimmer", "Baumgartner", "Sabitzer", "Arnautovic"
+    "Laimer", "Lienhart", "Alaba", "Mwene", "X. Schlager", "Seiwald", "Wimmer", "Baumgartner", "Sabitzer", "Arnautovic"
   ],
-  "Argélia": [
-    "Belghali", "Belaid", "Bensebaini", "Ait-Nouri",
-    "Zerrouki", "Boudaoui",
-    "Mahrez", "Aouar", "Chaibi", "Gouiri"
+  "Bélgica": [
+    "Castagne", "Debast", "Theate", "De Cuyper", "Tielemans", "Onana", "Doku", "De Bruyne", "Trossard", "De Ketelaere"
   ],
-  "Jordânia": [
-    "Abu Dahab", "Nasib", "Al-Arab",
-    "Haddad", "Al-Rawahbdeh", "Al-Rashdan", "Abu Taha",
-    "Tamari", "Olwan", "Al-Mardi"
+  "Bósnia": [
+    "Dedic", "Katic", "Muharemovic", "Kolasinac", "Bajraktarevic", "Sunjic", "Tahirovic", "Memic", "Demirovic", "Dzeko"
   ],
-  // GRUPO K
-  "Croácia": [
-    "Stanisic", "Sutalo", "Caleta-Car", "Gvardiol",
-    "Sucic", "Modric",
-    "Pasalic", "Kramaric", "Perisic", "Budimir"
+  "Brasil": [
+    "Ibañez", "Marquinhos", "Gabriel Magalhães", "Douglas Santos", "Casemiro", "Bruno Guimarães", "Lucas Paquetá", "Raphinha", "Vinícius Jr.", "Igor Thiago"
   ],
-  "RD Congo": [
-    "Wan-Bissaka", "Mbemba", "Tuanzebe", "Masuaku",
-    "Pickel", "Moutoussamy",
-    "Bongonda", "Kakuta", "Wissa", "Bakambu"
-  ],
-  "Sérvia": [
-    "Pavlovic", "Milenkovic", "Gudelj",
-    "Zivkovic", "Maksimovic", "Lucic",
-    "Tadic", "Jovic", "Vlahovic", "Mitrovic"
-  ],
-  "Gana": [
-    "Adjetei", "Seidu", "Oppong",
-    "Yirenkyi", "Sibo", "Partey", "Mensah",
-    "Sulemana", "Semenyo", "Ayew"
-  ],
-  // GRUPO L
-  "Japão": [
-    "Tomiyasu", "Taniguchi", "Itakura",
-    "Doan", "Endo", "Tanaka", "Nakamura",
-    "Kubo", "Ito", "Ueda"
-  ],
-  "Nova Zelândia": [
-    "Payne", "Bindon", "Boxall", "Cacace",
-    "Samenic", "Bell",
-    "McCowatt", "Singh", "Garbett", "Chris Wood"
+  "Canadá": [
+    "Sigur", "Bombito", "Jones", "Laryea", "Buchanan", "Koné", "Eustaquio", "Davies", "Oluwaseyi", "David"
   ],
   "Cabo Verde": [
-    "Moreira", "Lopes", "Borges", "Lopes Cabral",
-    "Lenini", "Duarte",
-    "Rodrigues", "Monteiro", "Cabral", "Livramento"
+    "Moreira", "Lopes", "Borges", "Lopes Cabral", "Lenini", "Duarte", "Rodrigues", "Monteiro", "Cabral", "Livramento"
+  ],
+  "Colômbia": [
+    "Muñoz", "Sánchez", "Mina", "Mojica", "Lerma", "Ríos", "Arias", "James", "Diaz", "Suárez"
+  ],
+  "Coreia do Sul": [
+    "Seol", "Min-jae Kim", "Han-beom Lee", "Tae-seok Lee", "Wang", "Castrop", "Kang-in Lee", "Jae-sung Lee", "Bae", "Son"
+  ],
+  "Costa do Marfim": [
+    "Doué", "Koussonou", "Ndicka", "Konan", "Kessié", "Sangaré", "Oulai", "Pepé", "Guessand", "Diomandé"
+  ],
+  "Curaçao": [
+    "Sambo", "Van Ejma", "Obispo", "Floranus", "J. Bacuna", "Comenancia", "L. Bacuna", "Chong", "Locadia", "Gorré"
+  ],
+  "Croácia": [
+    "Stanisic", "Sutalo", "Caleta-Car", "Gvardiol", "Sucic", "Modric", "Pasalic", "Kramaric", "Perisic", "Budimir"
+  ],
+  "Equador": [
+    "Preciado", "Ordonez", "Pacho", "HIncapié", "Vite", "Caicedo", "Castillo", "Yeboah", "Valencia", "Angulo"
+  ],
+  "Egito": [
+    "Ibrahim", "Abdelmaguif", "Rabia", "Hany", "Ateya", "Lasheen", "Fatouh", "Ashour", "Salah", "Marmoush"
+  ],
+  "França": [
+    "Koundé", "Saliba", "Upamecano", "Hernandez", "Rabiot", "Tchouameni", "Dembelé", "Olise", "Doué", "Mbappé"
+  ],
+  "Alemanha": [
+    "Kimmich", "Tah", "Schlotterbeck", "Raum", "Pavlovic", "Goreztka", "Sané", "Musiala", "Wirtz", "Havertz"
+  ],
+  "Gana": [
+    "Adjetei", "Seidu", "Oppong", "Yirenkyi", "Sibo", "Partey", "Mensah", "Sulemana", "Semenyo", "Ayew"
+  ],
+  "Japão": [
+    "Tomiyasu", "Taniguchi", "Itakura", "Doan", "Endo", "Tanaka", "Nakamura", "Kubo", "Ito", "Ueda"
+  ],
+  "Jordânia": [
+    "Abu Dahab", "Nasib", "Al-Arab", "Haddad", "Al-Rawahbdeh", "Al-Rashdan", "Abu Taha", "Tamari", "Olwan", "Al-Mardi"
+  ],
+  "Haiti": [
+    "Arcus", "Adé", "Duverne", "Expérience", "Deedson", "Bellegarde", "Pierre", "Isidor", "Nazon", "Providence"
+  ],
+  "Inglaterra": [
+    "James", "Guehi", "Konsa", "O'Reilly", "Anderson", "Rice", "Saka", "Bellingham", "Eze", "Kane"
+  ],
+  "Irã": [
+    "Yousefi", "Kanaani", "Khalilzadeh", "Mohammadi", "Ezatolahi", "Ghoddos", "Jahanbakhsh", "Ghayedi", "Mohebi", "Taremi"
+  ],
+  "Iraque": [
+    "Hussein Ali", "Sulaka", "Tahseen", "Doski", "Al-Ammari", "Bayesh", "Ali Jasim", "Iqbal", "Amyn", "Aymen Hussein"
+  ],
+  "Marrocos": [
+    "Hakimi", "Diop", "Aguerd", "Salah-Eddine", "Ounahi", "El Aynaoui", "Brahim Diaz", "Saibari", "Talbi", "El Kaabi"
+  ],
+  "México": [
+    "Sánchez", "Montes", "Vasquez", "Gallardo", "Pineda", "Alvarez", "Fidalgo", "Vega", "Jimenez", "Quinones"
+  ],
+  "Noruega": [
+    "Ryerson", "Heggem", "Ostigard", "Wolfe", "Thorstvedt", "Berg", "Berge", "Sorloth", "Haaland", "Nusa"
+  ],
+  "Nova Zelândia": [
+    "Payne", "Bindon", "Boxall", "Cacace", "Samenic", "Bell", "McCowatt", "Singh", "Garbett", "Wood"
+  ],
+  "Holanda": [
+    "Dumfries", "Van Dijk", "Aké", "Van de Ven", "De Jong", "Gravenberch", "Malen", "Reijnders", "Gakpo", "Depay"
+  ],
+  "Panamá": [
+    "Farina", "Andrade", "Cordoba", "Murillo", "Carrasquilla", "Godoy", "Davis", "Barcenas", "Diaz", "Fajardo"
+  ],
+  "Paraguai": [
+    "Caceres", "G. Gomez", "Alderete", "Alonso", "D. Gomez", "Ojeda", "Bobadilla", "Almiron", "Enciso", "Avalos"
+  ],
+  "Portugal": [
+    "Cancelo", "Ruben Dias", "Inacio", "Nuno Mendes", "Joao Neves", "Vitinha", "Bruno Fernandes", "Bernardo Silva", "Cristiano Ronaldo", "Joao Felix"
+  ],
+  "Catar": [
+    "Al-Oui", "Khoukhi", "Pedro Miguel", "Al-Amin", "Boudiaf", "Fathy", "Laye", "Edmilson Junior", "Almoez Ali", "Afif"
+  ],
+  "Escócia": [
+    "Hickey", "Hanley", "McKenna", "Robertson", "Ferguson", "Gannon-Doak", "Christie", "McTominay", "McGinn", "Adams"
+  ],
+  "Espanha": [
+    "Llorente", "Cubarsì", "Laporte", "Cucurella", "Pedri", "Rodri", "Fabian Ruiz", "Yamal", "Oyarzabal", "N. Williams"
+  ],
+  "Estados Unidos": [
+    "Freeman", "Richards", "Trusty", "Antonee Robinson", "McKennie", "Berhalter", "Adams", "Weah", "Balogun", "Pulisic"
+  ],
+  "África do Sul": [
+    "Mudau", "Sibisi", "Ndamane", "Modiba", "Sithole", "Mokoena", "Apollis", "Zwane", "Mofokeng", "Foster"
+  ],
+  "Suécia": [
+    "Starfelt", "Lagerbielke", "Lindelof", "Svensson", "Karlstrom", "Ayari", "Gudmundsson", "Nygren", "Elanga", "Gyokeres"
+  ],
+  "Suíça": [
+    "Widmer", "Akanji", "Elvedi", "Rodriguez", "Freuler", "Xhaka", "Rieder", "Ndoye", "Embolo", "Vargas"
+  ],
+  "Tunísia": [
+    "Valery", "Bronn", "Talbi", "Abdi", "Gharbi", "Skhiri", "Hannibal", "Achouri", "Mastouri", "Tounekti"
+  ],
+  "Turquia": [
+    "Demiral", "Kabak", "Bardakci", "Celik", "Calhanoglu", "Kokcu", "Ozer", "Guler", "Yildiz", "Akturkoglu"
+  ],
+  "Uruguai": [
+    "Valera", "Gimenez", "Araujo", "Olivera", "Valverde", "Ugarte", "Bentancur", "Canobbio", "Nunez", "Rodriguez"
   ],
   "Uzbequistão": [
-    "Abdullaev", "Ashurmatov", "Khusanov",
-    "Sayfiev", "Shukurov", "Khamrobekov", "Nasrullaev",
-    "Ganiev", "Urunov", "Shomurodov"
+    "Abdullaev", "Ashurmatov", "Khusanov", "Sayfiev", "Shukurov", "Khamrobekov", "Nasrullaev", "Ganiev", "Urunov", "Shomurodov"
+  ],
+  "Tchéquia": [
+    "Chaloupek", "Hranac", "Krejci", "Zeleny", "Soucek", "Darida", "Coufal", "Provod", "Sulc", "Schick"
+  ],
+  "RD Congo": [
+    "Wan-Bissaka", "Mbemba", "Tuanzebe", "Masuaku", "Pickel", "Moutoussamy", "Bongonda", "Kakuta", "Wissa", "Bakambu"
+  ],
+  "Senegal": [
+    "Diatta", "Koulibaly", "Niakhaté", "Jakobs", "Idrissa Gueye", "Pape Gueye", "Ismaila Sarr", "Iliman Ndiaye", "Mané", "Jackson"
+  ],
+  "Sérvia": [
+    "Pavlovic", "Milenkovic", "Gudelj", "Zivkovic", "Maksimovic", "Lucic", "Tadic", "Jovic", "Vlahovic", "Mitrovic"
   ],
 };
+
+// Tentar carregar escalacoes atualizadas do disco (atualizado pelo GitHub Actions ou cron)
+try {
+  const lineupsFile = path.join(__dirname, 'data', 'lineups.json');
+  if (fs.existsSync(lineupsFile)) {
+    const loadedLineups = JSON.parse(fs.readFileSync(lineupsFile, 'utf8'));
+    const loadedCount = Object.keys(loadedLineups).length;
+    if (loadedCount > 0) {
+      Object.assign(confirmedStarters, loadedLineups);
+      console.log(`[Lineups] ${loadedCount} lineups carregados de data/lineups.json`);
+    }
+  }
+} catch (e) {
+  console.error('[Lineups] Erro ao carregar data/lineups.json:', e.message);
+}
 
 // ─────────────────────────────────────────────
 //  48 TIMES DA COPA DO MUNDO 2026
@@ -914,7 +826,7 @@ function guessPosition(playerName) {
     'preciado', 'ordonez', 'pacho', 'hincapié', 'hincapie'];
   
   for (const def of defenders) {
-    if (name.includes(def)) return 'Defender';
+    if (name.includes(def)) return 'DEFENDER';
   }
   
   // Meio-campistas conhecidos
@@ -949,7 +861,7 @@ function guessPosition(playerName) {
     'fathy', 'laye', 'boudiaf'];
   
   for (const mid of midfielders) {
-    if (name.includes(mid)) return 'Midfielder';
+    if (name.includes(mid)) return 'MIDFIELDER';
   }
   
   // Atacantes conhecidos
@@ -996,12 +908,12 @@ function guessPosition(playerName) {
     'evidence makgopa', 'percy tau'];
   
   for (const fwd of forwards) {
-    if (name.includes(fwd)) return 'Attacker';
+    if (name.includes(fwd)) return 'ATTACKER';
   }
   
   // Default: baseado em padrões de nome
   // Jogadores com "FC", "CF", "ST" no nome geralmente são atacantes
-  return 'Midfielder'; // Default
+  return 'MIDFIELDER'; // Default
 }
 
 // ─────────────────────────────────────────────
@@ -1427,6 +1339,58 @@ app.delete('/api/cache/:team', (req, res) => {
   } else {
     res.json({ message: `Time "${team}" não estava no cache.` });
   }
+});
+
+// ─────────────────────────────────────────────
+//  ATUALIZACAO AUTOMATICA DE LINEUPS (Goal.com)
+// ─────────────────────────────────────────────
+
+let lastLineupUpdate = null;
+let lineupUpdateRunning = false;
+
+async function refreshLineupsFromGoal() {
+  if (lineupUpdateRunning) return { message: 'Atualização já em andamento.' };
+  lineupUpdateRunning = true;
+
+  try {
+    const { main } = require('./scripts/auto-update-lineups');
+    const result = await main();
+
+    // Atualizar confirmedStarters em memória
+    if (result && Object.keys(result).length > 0) {
+      Object.assign(confirmedStarters, result);
+      lastLineupUpdate = new Date().toISOString();
+      console.log(`[Lineups] Atualizado: ${Object.keys(result).length} times`);
+    }
+
+    lineupUpdateRunning = false;
+    return { message: 'Lineups atualizados com sucesso!', count: Object.keys(result || {}).length, updatedAt: lastLineupUpdate };
+  } catch (e) {
+    lineupUpdateRunning = false;
+    console.error('[Lineups] Erro na atualização:', e.message);
+    return { message: `Erro: ${e.message}` };
+  }
+}
+
+// Agendar atualização automática a cada 6 horas (0 */6 * * *)
+cron.schedule('0 */6 * * *', () => {
+  console.log('[Cron] Iniciando atualização automática de lineups...');
+  refreshLineupsFromGoal().then(result => {
+    console.log('[Cron] Resultado:', result.message);
+  });
+});
+
+app.post('/api/refresh-lineups', async (req, res) => {
+  const result = await refreshLineupsFromGoal();
+  res.json(result);
+});
+
+app.get('/api/lineups-status', (req, res) => {
+  res.json({
+    totalTeams: Object.keys(confirmedStarters).length,
+    lastUpdate: lastLineupUpdate,
+    running: lineupUpdateRunning,
+  });
 });
 
 // ─────────────────────────────────────────────

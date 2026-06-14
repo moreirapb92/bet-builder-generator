@@ -1,0 +1,45 @@
+name: Update Lineups
+
+on:
+  schedule:
+    - cron: '0 6 */2 * *'
+  workflow_dispatch:
+
+jobs:
+  update-lineups:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lineup scraper
+        run: node scripts/auto-update-lineups.js
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet data/lineups.json; then
+            echo "No changes detected"
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "Lineups changed!"
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push updates
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/lineups.json data/goal-content.json
+          git commit -m "Auto-update lineups from Goal.com [skip ci]"
+          git push

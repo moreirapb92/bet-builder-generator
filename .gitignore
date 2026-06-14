@@ -1,6 +1,17 @@
 node_modules/
 .env
 data/api_cache.json
+data/goal-content.json
+data/lineups-code.js
+goal-content.json
+goal-layout.json
+goal-page-data.json
+goal-lineups.json
+scraped-lineups.json
+confirmed-starters-*.json
+confirmed-starters-code.js
+confirmed-starters-generated.json
+confirmed-starters-final.json
 *.log
 .DS_Store
 Thumbs.db
