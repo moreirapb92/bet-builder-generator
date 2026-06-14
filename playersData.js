@@ -22,12 +22,10 @@ const playersData = {
     players: [
       // Vinicius Jr. → gols pelo lado, fora da área, assistências. NÃO é de cabeça
       { name: "Vinícius Jr.", pos: "FWD", specialties: ["scorer", "outsideBox", "assist"], markets: { scorer: 2.20, header: 15.00, outsideBox: 7.00, assist: 2.80, card: 4.50 } },
-      // Rodrygo → versátil, marca e dá assistência
-      { name: "Rodrygo", pos: "FWD", specialties: ["scorer", "assist", "outsideBox"], markets: { scorer: 2.50, header: 13.00, outsideBox: 7.50, assist: 3.00, card: 5.00 } },
       // Raphinha → muito ativo nas assistências e chutes de fora
       { name: "Raphinha", pos: "FWD", specialties: ["outsideBox", "assist", "scorer"], markets: { scorer: 2.80, header: 16.00, outsideBox: 5.50, assist: 2.50, card: 4.00 } },
-      // Matheus Cunha → atacante do Wolves, rápido, gols dentro da área e assistências
-      { name: "Matheus Cunha", pos: "FWD", specialties: ["scorer", "assist"], markets: { scorer: 2.60, header: 11.00, outsideBox: 9.00, assist: 3.00, card: 3.50 } },
+      // Igor Thiago → centroavante do Bremer, substituto do Danilo. Gols de dentro da área
+      { name: "Igor Thiago", pos: "FWD", specialties: ["scorer", "header"], markets: { scorer: 2.40, header: 8.00, outsideBox: 14.00, assist: 4.50, card: 3.00 } },
       // Lucas Paquetá → meia criativo, assistências e às vezes cartões
       { name: "Lucas Paquetá", pos: "MID", specialties: ["assist", "outsideBox", "card"], markets: { scorer: 4.00, header: 11.00, outsideBox: 9.00, assist: 3.00, card: 2.30 } },
       // Bruno Guimarães → meia combativo, muitos cartões
@@ -38,6 +36,8 @@ const playersData = {
       { name: "Marquinhos", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 9.00, header: 8.00, outsideBox: 25.00, assist: 12.00, card: 3.50 } },
       // Gabriel Magalhães → CABEÇA em bolas paradas
       { name: "Gabriel Magalhães", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 8.50, header: 7.50, outsideBox: 28.00, assist: 14.00, card: 3.00 } },
+      // Ibañez → zagueiro titular, substituto de Danilo
+      { name: "Ibañez", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 9.50, header: 8.50, outsideBox: 26.00, assist: 13.00, card: 3.20 } },
       // Danilo → lateral, defensivo, poucas assistências. Mais cartão
       { name: "Danilo", pos: "DEF", specialties: ["card"], markets: { scorer: 12.00, header: 15.00, outsideBox: 25.00, assist: 6.50, card: 2.20 } },
       // Douglas Santos → lateral, defensivo, poucas assistências
