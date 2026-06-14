@@ -31,17 +31,18 @@ const playersData = {
       // Bruno Guimarães → meia combativo, muitos cartões
       { name: "Bruno Guimarães", pos: "MID", specialties: ["card", "outsideBox"], markets: { scorer: 6.00, header: 13.00, outsideBox: 10.00, assist: 4.50, card: 2.00 } },
       // Casemiro → volante, chutes de longe e gol de cabeça em bola parada
-      { name: "Casemiro", pos: "MID", specialties: ["header", "card", "outsideBox"], markets: { scorer: 6.00, header: 7.00, outsideBox: 9.00, assist: 6.00, card: 2.00 } },
+      // NÃO tem scorer nem assist → odds altíssimas nesses mercados
+      { name: "Casemiro", pos: "MID", specialties: ["header", "card", "outsideBox"], markets: { scorer: 99.00, header: 7.00, outsideBox: 9.00, assist: 99.00, card: 2.00 } },
       // Marquinhos → CABEÇA em escanteios e faltas. Zagueiro goleador aéreo
-      { name: "Marquinhos", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 9.00, header: 8.00, outsideBox: 25.00, assist: 12.00, card: 3.50 } },
+      { name: "Marquinhos", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 99.00, header: 8.00, outsideBox: 25.00, assist: 99.00, card: 3.50 } },
       // Gabriel Magalhães → CABEÇA em bolas paradas
-      { name: "Gabriel Magalhães", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 8.50, header: 7.50, outsideBox: 28.00, assist: 14.00, card: 3.00 } },
+      { name: "Gabriel Magalhães", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 99.00, header: 7.50, outsideBox: 28.00, assist: 99.00, card: 3.00 } },
       // Ibañez → zagueiro titular, substituto de Danilo
-      { name: "Ibañez", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 9.50, header: 8.50, outsideBox: 26.00, assist: 13.00, card: 3.20 } },
+      { name: "Ibañez", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 99.00, header: 8.50, outsideBox: 26.00, assist: 99.00, card: 3.20 } },
       // Danilo → lateral, defensivo, poucas assistências. Mais cartão
-      { name: "Danilo", pos: "DEF", specialties: ["card"], markets: { scorer: 12.00, header: 15.00, outsideBox: 25.00, assist: 6.50, card: 2.20 } },
+      { name: "Danilo", pos: "DEF", specialties: ["card"], markets: { scorer: 99.00, header: 15.00, outsideBox: 25.00, assist: 99.00, card: 2.20 } },
       // Douglas Santos → lateral, defensivo, poucas assistências
-      { name: "Douglas Santos", pos: "DEF", specialties: ["card"], markets: { scorer: 13.00, header: 16.00, outsideBox: 26.00, assist: 7.00, card: 2.10 } }
+      { name: "Douglas Santos", pos: "DEF", specialties: ["card"], markets: { scorer: 99.00, header: 16.00, outsideBox: 26.00, assist: 99.00, card: 2.10 } }
     ]
   },
 
@@ -77,7 +78,7 @@ const playersData = {
       // Tchouaméni → volante, cartões e ocasionalmente de fora
       { name: "Aurélien Tchouaméni", pos: "MID", specialties: ["card", "outsideBox"], markets: { scorer: 6.50, header: 9.00, outsideBox: 8.00, assist: 6.00, card: 2.20 } },
       // Theo Hernandez → lateral, mais defensivo
-      { name: "Theo Hernandez", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 7.00, header: 9.00, outsideBox: 18.00, assist: 8.00, card: 2.80 } }
+      { name: "Theo Hernandez", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 99.00, header: 9.00, outsideBox: 18.00, assist: 99.00, card: 2.80 } }
     ]
   },
 
@@ -161,7 +162,7 @@ const playersData = {
       // Gue-Sung Cho → centroavante ESPECIALISTA EM CABEÇA (ficou famoso no Qatar 2022)
       { name: "Gue-Sung Cho", pos: "FWD", specialties: ["scorer", "header"], markets: { scorer: 2.60, header: 4.00, outsideBox: 16.00, assist: 5.50, card: 4.00 } },
       // Min-Jae Kim → zagueiro forte, CABEÇA em bolas paradas
-      { name: "Min-Jae Kim", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 8.50, header: 7.50, outsideBox: 30.00, assist: 12.00, card: 2.50 } },
+      { name: "Min-Jae Kim", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 99.00, header: 7.50, outsideBox: 30.00, assist: 99.00, card: 2.50 } },
       // Lee Jae-Sung → meia-atacante, gols de fora e assistências
       { name: "Jae-Sung Lee", pos: "MID", specialties: ["outsideBox", "assist"], markets: { scorer: 4.00, header: 16.00, outsideBox: 7.00, assist: 3.20, card: 3.50 } }
     ]
@@ -171,7 +172,7 @@ const playersData = {
     type: "national",
     players: [
       // Hakimi → lateral-direito, mais defensivo
-      { name: "Achraf Hakimi", pos: "DEF", specialties: ["outsideBox", "card"], markets: { scorer: 7.50, header: 18.00, outsideBox: 12.00, assist: 8.00, card: 3.50 } },
+      { name: "Achraf Hakimi", pos: "DEF", specialties: ["outsideBox", "card"], markets: { scorer: 99.00, header: 18.00, outsideBox: 12.00, assist: 99.00, card: 3.50 } },
       // Ounahi → meia criativo, ASSISTÊNCIAS
       { name: "Azzedine Ounahi", pos: "MID", specialties: ["assist", "outsideBox"], markets: { scorer: 5.00, header: 16.00, outsideBox: 8.00, assist: 3.00, card: 3.00 } },
       // Brahim Díaz → meia ofensivo, FORA DA ÁREA e assistências. Pequeno, NÃO é de cabeça
@@ -199,7 +200,7 @@ const playersData = {
       // Pavel Šulc → atacante dinâmico, gols e assistências
       { name: "Pavel Sulc", pos: "MID", specialties: ["scorer", "assist", "outsideBox"], markets: { scorer: 3.80, header: 13.00, outsideBox: 8.00, assist: 3.50, card: 3.20 } },
       // Vladimír Coufal → lateral, mais defensivo
-      { name: "Vladimir Coufal", pos: "DEF", specialties: ["card"], markets: { scorer: 9.00, header: 12.00, outsideBox: 25.00, assist: 7.00, card: 2.30 } }
+      { name: "Vladimir Coufal", pos: "DEF", specialties: ["card"], markets: { scorer: 99.00, header: 12.00, outsideBox: 25.00, assist: 99.00, card: 2.30 } }
     ]
   },
 
@@ -213,7 +214,7 @@ const playersData = {
       // John McGinn → combativo, cartões e chutes de longe
       { name: "John McGinn", pos: "MID", specialties: ["card", "outsideBox", "scorer"], markets: { scorer: 4.20, header: 13.00, outsideBox: 9.00, assist: 3.80, card: 2.20 } },
       // Andy Robertson → lateral esquerdo, mais defensivo
-      { name: "Andy Robertson", pos: "DEF", specialties: ["card"], markets: { scorer: 9.00, header: 14.00, outsideBox: 22.00, assist: 7.50, card: 2.60 } }
+      { name: "Andy Robertson", pos: "DEF", specialties: ["card"], markets: { scorer: 99.00, header: 14.00, outsideBox: 22.00, assist: 99.00, card: 2.60 } }
     ]
   },
 
@@ -239,7 +240,7 @@ const playersData = {
       // Godoy → meia criativo, assistências
       { name: "Adalberto Carrasquilla", pos: "MID", specialties: ["assist", "outsideBox"], markets: { scorer: 5.50, header: 15.00, outsideBox: 11.00, assist: 4.00, card: 2.80 } },
       // Escobar → zagueiro combativo, cartões em bolas paradas
-      { name: "F Escobar", pos: "DEF", specialties: ["card", "header"], markets: { scorer: 12.00, header: 11.00, outsideBox: 30.00, assist: 15.00, card: 2.00 } }
+      { name: "F Escobar", pos: "DEF", specialties: ["card", "header"], markets: { scorer: 99.00, header: 11.00, outsideBox: 30.00, assist: 99.00, card: 2.00 } }
     ]
   },
 
@@ -251,7 +252,7 @@ const playersData = {
       // Sarpreet Singh → meia técnico, assistências e criação
       { name: "Sarpreet Singh", pos: "MID", specialties: ["assist", "outsideBox"], markets: { scorer: 5.00, header: 18.00, outsideBox: 11.00, assist: 4.00, card: 3.00 } },
       // Liberato Cacace → lateral, mais defensivo
-      { name: "Liberato Cacace", pos: "DEF", specialties: ["card"], markets: { scorer: 10.00, header: 15.00, outsideBox: 22.00, assist: 7.00, card: 2.50 } }
+      { name: "Liberato Cacace", pos: "DEF", specialties: ["card"], markets: { scorer: 99.00, header: 15.00, outsideBox: 22.00, assist: 99.00, card: 2.50 } }
     ]
   },
 
@@ -259,7 +260,7 @@ const playersData = {
     type: "national",
     players: [
       // Alphonso Davies → lateral esquerdo, mais defensivo
-      { name: "Alphonso Davies", pos: "DEF", specialties: ["outsideBox", "card"], markets: { scorer: 8.00, header: 14.00, outsideBox: 10.00, assist: 7.50, card: 3.00 } },
+      { name: "Alphonso Davies", pos: "DEF", specialties: ["outsideBox", "card"], markets: { scorer: 99.00, header: 14.00, outsideBox: 10.00, assist: 99.00, card: 3.00 } },
       // Jonathan David → centroavante goleador, fora e dentro da área
       { name: "Jonathan David", pos: "FWD", specialties: ["scorer", "outsideBox", "assist"], markets: { scorer: 2.00, header: 10.00, outsideBox: 6.50, assist: 3.50, card: 4.00 } },
       // Cyle Larin → centroavante físico, CABEÇA
@@ -336,7 +337,7 @@ const playersData = {
       // Cody Gakpo → CABEÇA e gols variados. Alto, físico
       { name: "Cody Gakpo", pos: "FWD", specialties: ["scorer", "header", "assist"], markets: { scorer: 2.30, header: 6.00, outsideBox: 10.00, assist: 3.20, card: 4.00 } },
       // Virgil van Dijk → zagueiro, CABEÇA em bolas paradas (entra para atacar)
-      { name: "Virgil van Dijk", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 7.50, header: 7.50, outsideBox: 25.00, assist: 10.00, card: 3.00 } },
+      { name: "Virgil van Dijk", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 99.00, header: 7.50, outsideBox: 25.00, assist: 99.00, card: 3.00 } },
       // Xavi Simons → meia técnico, FORA DA ÁREA
       { name: "Xavi Simons", pos: "MID", specialties: ["outsideBox", "assist", "scorer"], markets: { scorer: 3.50, header: 17.00, outsideBox: 7.00, assist: 2.80, card: 4.00 } },
       // Tijjani Reijnders → meia goleador, inserções pela área
@@ -376,7 +377,7 @@ const playersData = {
       // Luiz Araújo → FORA DA ÁREA, extremo driblador
       { name: "Luiz Araújo", pos: "FWD", specialties: ["outsideBox", "assist", "scorer"], markets: { scorer: 3.50, header: 18.00, outsideBox: 7.00, assist: 2.80, card: 3.80 } },
       // Léo Ortiz → zagueiro, CABEÇA em bola parada e combativo
-      { name: "Léo Ortiz", pos: "DEF", specialties: ["card", "header"], markets: { scorer: 7.50, header: 8.00, outsideBox: 20.00, assist: 10.00, card: 2.80 } }
+      { name: "Léo Ortiz", pos: "DEF", specialties: ["card", "header"], markets: { scorer: 99.00, header: 8.00, outsideBox: 20.00, assist: 99.00, card: 2.80 } }
     ]
   },
 
@@ -392,7 +393,7 @@ const playersData = {
       // Rony → extremo físico, gols e cabeceios
       { name: "Rony", pos: "FWD", specialties: ["scorer", "header", "assist"], markets: { scorer: 3.00, header: 7.50, outsideBox: 11.00, assist: 3.50, card: 3.20 } },
       // Gustavo Gómez → zagueiro capitão, CABEÇA em bola parada
-      { name: "Gustavo Gómez", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 6.00, header: 6.50, outsideBox: 25.00, assist: 10.00, card: 2.20 } }
+      { name: "Gustavo Gómez", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 99.00, header: 6.50, outsideBox: 25.00, assist: 99.00, card: 2.20 } }
     ]
   },
 
@@ -430,7 +431,7 @@ const playersData = {
       { name: "Luis Díaz", pos: "FWD", specialties: ["scorer", "assist", "outsideBox"], markets: { scorer: 2.80, header: 15.00, outsideBox: 7.50, assist: 3.00, card: 3.50 } },
       { name: "Dominik Szoboszlai", pos: "MID", specialties: ["outsideBox", "assist"], markets: { scorer: 4.50, header: 14.00, outsideBox: 7.00, assist: 3.20, card: 3.00 } },
       { name: "Alexis Mac Allister", pos: "MID", specialties: ["assist", "outsideBox", "card"], markets: { scorer: 5.00, header: 15.00, outsideBox: 8.00, assist: 2.80, card: 2.50 } },
-      { name: "Virgil van Dijk", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 7.00, header: 6.50, outsideBox: 25.00, assist: 10.00, card: 3.00 } }
+      { name: "Virgil van Dijk", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 99.00, header: 6.50, outsideBox: 25.00, assist: 99.00, card: 3.00 } }
     ]
   },
 
@@ -442,7 +443,7 @@ const playersData = {
       { name: "Martin Ødegaard", pos: "MID", specialties: ["assist", "outsideBox", "scorer"], markets: { scorer: 3.00, header: 18.00, outsideBox: 5.50, assist: 2.00, card: 3.80 } },
       { name: "Gabriel Jesus", pos: "FWD", specialties: ["scorer", "assist"], markets: { scorer: 2.40, header: 10.00, outsideBox: 8.00, assist: 3.20, card: 4.50 } },
       { name: "Declan Rice", pos: "MID", specialties: ["card", "outsideBox"], markets: { scorer: 6.00, header: 11.00, outsideBox: 9.00, assist: 4.50, card: 2.30 } },
-      { name: "William Saliba", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 9.00, header: 8.00, outsideBox: 28.00, assist: 14.00, card: 3.00 } }
+      { name: "William Saliba", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 99.00, header: 8.00, outsideBox: 28.00, assist: 99.00, card: 3.00 } }
     ]
   },
 
@@ -454,7 +455,7 @@ const playersData = {
       { name: "Raphinha", pos: "FWD", specialties: ["scorer", "assist", "outsideBox"], markets: { scorer: 2.50, header: 14.00, outsideBox: 6.00, assist: 2.40, card: 3.50 } },
       { name: "Pedri", pos: "MID", specialties: ["assist", "outsideBox"], markets: { scorer: 4.50, header: 18.00, outsideBox: 8.00, assist: 2.80, card: 3.50 } },
       { name: "Gavi", pos: "MID", specialties: ["assist", "card", "outsideBox"], markets: { scorer: 5.50, header: 16.00, outsideBox: 9.00, assist: 3.00, card: 2.20 } },
-      { name: "Pau Cubarsí", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 10.00, header: 7.50, outsideBox: 30.00, assist: 15.00, card: 3.50 } }
+      { name: "Pau Cubarsí", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 99.00, header: 7.50, outsideBox: 30.00, assist: 99.00, card: 3.50 } }
     ]
   },
 
@@ -494,7 +495,7 @@ const playersData = {
       { name: "Victor Osimhen", pos: "FWD", specialties: ["scorer", "header"], markets: { scorer: 1.75, header: 4.50, outsideBox: 11.00, assist: 5.00, card: 4.50 } },
       { name: "Khvicha Kvaratskhelia", pos: "FWD", specialties: ["scorer", "assist", "outsideBox"], markets: { scorer: 2.60, header: 18.00, outsideBox: 7.00, assist: 2.50, card: 3.80 } },
       { name: "Stanislav Lobotka", pos: "MID", specialties: ["assist", "card"], markets: { scorer: 8.00, header: 20.00, outsideBox: 12.00, assist: 3.50, card: 2.50 } },
-      { name: "Giovanni Di Lorenzo", pos: "DEF", specialties: ["card"], markets: { scorer: 8.50, header: 12.00, outsideBox: 22.00, assist: 7.00, card: 2.80 } }
+      { name: "Giovanni Di Lorenzo", pos: "DEF", specialties: ["card"], markets: { scorer: 99.00, header: 12.00, outsideBox: 22.00, assist: 99.00, card: 2.80 } }
     ]
   },
 
@@ -525,7 +526,7 @@ const playersData = {
       { name: "Ousmane Dembélé", pos: "FWD", specialties: ["assist", "outsideBox"], markets: { scorer: 3.00, header: 18.00, outsideBox: 7.50, assist: 2.30, card: 4.00 } },
       { name: "Bradley Barcola", pos: "FWD", specialties: ["scorer", "assist", "outsideBox"], markets: { scorer: 2.80, header: 16.00, outsideBox: 8.00, assist: 3.00, card: 4.50 } },
       { name: "Vitinha", pos: "MID", specialties: ["assist", "outsideBox"], markets: { scorer: 5.00, header: 18.00, outsideBox: 7.00, assist: 2.50, card: 3.50 } },
-      { name: "Marquinhos", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 8.50, header: 7.50, outsideBox: 25.00, assist: 12.00, card: 3.00 } }
+      { name: "Marquinhos", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 99.00, header: 7.50, outsideBox: 25.00, assist: 99.00, card: 3.00 } }
     ]
   },
 
@@ -605,7 +606,7 @@ const playersData = {
       { name: "Victor Boniface", pos: "FWD", specialties: ["scorer", "header", "assist"], markets: { scorer: 2.00, header: 5.50, outsideBox: 9.00, assist: 3.50, card: 4.00 } },
       { name: "Florian Wirtz", pos: "MID", specialties: ["outsideBox", "assist", "scorer"], markets: { scorer: 2.80, header: 18.00, outsideBox: 5.50, assist: 2.00, card: 4.00 } },
       { name: "Exequiel Palacios", pos: "MID", specialties: ["card", "assist"], markets: { scorer: 6.00, header: 14.00, outsideBox: 10.00, assist: 3.50, card: 2.20 } },
-      { name: "Jonathan Tah", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 8.00, header: 7.00, outsideBox: 28.00, assist: 14.00, card: 3.00 } }
+      { name: "Jonathan Tah", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 99.00, header: 7.00, outsideBox: 28.00, assist: 99.00, card: 3.00 } }
     ]
   },
 
@@ -636,7 +637,7 @@ const playersData = {
       { name: "Frantzdy Pierrot", pos: "FWD", specialties: ["scorer", "header"], markets: { scorer: 3.80, header: 6.50, outsideBox: 14.00, assist: 6.00, card: 3.50 } },
       { name: "Steevens Joseph", pos: "MID", specialties: ["assist", "outsideBox"], markets: { scorer: 5.00, header: 16.00, outsideBox: 9.00, assist: 3.50, card: 3.00 } },
       { name: "Carnejy Antoine", pos: "FWD", specialties: ["scorer", "outsideBox"], markets: { scorer: 4.00, header: 11.00, outsideBox: 8.00, assist: 4.50, card: 3.80 } },
-      { name: "Jean-Kévin Duverne", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 9.00, header: 8.00, outsideBox: 25.00, assist: 12.00, card: 2.80 } },
+      { name: "Jean-Kévin Duverne", pos: "DEF", specialties: ["header", "card"], markets: { scorer: 99.00, header: 8.00, outsideBox: 25.00, assist: 99.00, card: 2.80 } },
       { name: "Alexandre Jeanty", pos: "MID", specialties: ["card", "outsideBox"], markets: { scorer: 6.50, header: 14.00, outsideBox: 10.00, assist: 5.00, card: 2.20 } }
     ]
   },
@@ -669,7 +670,7 @@ const playersData = {
       { name: "Dejan Kulusevski", pos: "FWD", specialties: ["assist", "outsideBox", "scorer"], markets: { scorer: 3.00, header: 14.00, outsideBox: 6.50, assist: 2.30, card: 3.50 } },
       { name: "Emil Forsberg", pos: "MID", specialties: ["outsideBox", "assist"], markets: { scorer: 3.50, header: 12.00, outsideBox: 5.50, assist: 2.80, card: 3.00 } },
       { name: "Viktor Gyökeres", pos: "FWD", specialties: ["scorer", "header"], markets: { scorer: 2.00, header: 5.00, outsideBox: 8.00, assist: 4.50, card: 3.50 } },
-      { name: "Linus Wahlqvist", pos: "DEF", specialties: ["card"], markets: { scorer: 14.00, header: 12.00, outsideBox: 28.00, assist: 8.00, card: 2.50 } }
+      { name: "Linus Wahlqvist", pos: "DEF", specialties: ["card"], markets: { scorer: 99.00, header: 12.00, outsideBox: 28.00, assist: 99.00, card: 2.50 } }
     ]
   },
 
@@ -953,7 +954,7 @@ const playersData = {
       { name: "Almoez Ali", pos: "FWD", specialties: ["scorer", "header"], markets: { scorer: 2.50, header: 4.50, outsideBox: 10.00, assist: 5.00, card: 4.00 } },
       { name: "Akram Afif", pos: "FWD", specialties: ["assist", "outsideBox", "scorer"], markets: { scorer: 3.00, header: 12.00, outsideBox: 6.00, assist: 2.50, card: 3.00 } },
       { name: "Karim Boudiaf", pos: "MID", specialties: ["card", "outsideBox"], markets: { scorer: 6.00, header: 12.00, outsideBox: 9.00, assist: 5.50, card: 2.00 } },
-      { name: "Abdelkarim Hassan", pos: "DEF", specialties: ["card", "header"], markets: { scorer: 9.00, header: 8.00, outsideBox: 18.00, assist: 7.00, card: 2.50 } }
+      { name: "Abdelkarim Hassan", pos: "DEF", specialties: ["card", "header"], markets: { scorer: 99.00, header: 8.00, outsideBox: 18.00, assist: 99.00, card: 2.50 } }
     ]
   }
 };

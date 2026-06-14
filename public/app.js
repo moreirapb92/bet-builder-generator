@@ -443,8 +443,15 @@ async function autoGenerateSelections(isRegen = false) {
       // Define a estratégia do bilhete:
       // Bilhetes 0 e 1: Gols e Assistências (Apenas 'scorer' e 'assist')
       // Bilhetes 2 e 3: Gols Especiais (Apenas 'header' e 'outsideBox')
-      const allowedKeys = (tIdx === 0 || tIdx === 1) ? ['scorer', 'assist'] : ['header', 'outsideBox'];
+      // Cada par tem ordem alternada para gerar combinações diferentes
+      const isGoalAssist = (tIdx === 0 || tIdx === 1);
+      const allowedKeys = isGoalAssist ? ['scorer', 'assist'] : ['header', 'outsideBox'];
       const currentMarketTypes = marketTypes.filter(m => allowedKeys.includes(m.key));
+
+      // Inverter ordem dos mercados entre tickets do mesmo tipo (evita duplicatas)
+      const marketOrder = isGoalAssist
+        ? (tIdx === 0 ? ['scorer', 'assist'] : ['assist', 'scorer'])
+        : (tIdx === 2 ? ['header', 'outsideBox'] : ['outsideBox', 'header']);
 
       while ((combinedOdd < 20 || combinedOdd > 200) && attempts < maxAttempts) {
         combinedOdd = 1;
@@ -453,15 +460,15 @@ async function autoGenerateSelections(isRegen = false) {
 
         // Se for Gols/Assists, 3 palpites (múltipla mais encorpada)
         // Se for Gols Especiais, 2 palpites bastam devido às odds altas
-        const numSelections = (tIdx === 0 || tIdx === 1) 
-          ? 3 // 3 palpites fixos
-          : 2; // 2 palpites fixos
+        const numSelections = isGoalAssist
+          ? 3
+          : 2;
           
         const usedPlayers = new Set();
         let homeCount = 0;
         let awayCount = 0;
 
-        // Para bilhetes Gols/Assists, garantir pelo menos 1 scorer e 1 assist
+        // Para bilhetes Gols/Assists, garantir pelo menos 1 de cada mercado
         const usedMarkets = new Set();
 
         for (let i = 0; i < numSelections; i++) {
@@ -478,25 +485,20 @@ async function autoGenerateSelections(isRegen = false) {
           if (isHome && !homeIsFavorite && homeCount >= maxFromUnderdog) continue;
           if (!isHome && !awayIsFavorite && awayCount >= maxFromUnderdog) continue;
 
-          // GARANTIR MISTURA: primeiro scorer, depois assist (ou vice-versa)
+          // Alternar ordem dos mercados entre tickets para gerar combinações diferentes
           let market;
-          if (tIdx === 0 || tIdx === 1) {
-            // Bilhete Gols/Assists: garantir pelo menos 1 de cada
-            if (i === 0) {
-              // Primeiro: scorer
-              market = currentMarketTypes.find(m => m.key === 'scorer');
-            } else if (i === 1 && !usedMarkets.has('assist')) {
-              // Segundo: assist (se ainda não teve)
-              market = currentMarketTypes.find(m => m.key === 'assist');
-            } else if (i === 1 && usedMarkets.has('assist')) {
-              // Já teve assist, colocar scorer
-              market = currentMarketTypes.find(m => m.key === 'scorer');
+          const marketIdx = i < marketOrder.length ? i : (i % marketOrder.length);
+          const desiredMarket = marketOrder[marketIdx];
+
+          if (isGoalAssist) {
+            // Se esse mercado já foi usado, pegar o outro
+            if (usedMarkets.has(desiredMarket)) {
+              const alt = marketOrder.find(m => !usedMarkets.has(m));
+              market = alt ? currentMarketTypes.find(m => m.key === alt) : currentMarketTypes[Math.floor(Math.random() * currentMarketTypes.length)];
             } else {
-              // Terceiro: qualquer um
-              market = currentMarketTypes[Math.floor(Math.random() * currentMarketTypes.length)];
+              market = currentMarketTypes.find(m => m.key === desiredMarket);
             }
           } else {
-            // Bilhete Gols Especiais: qualquer um
             market = currentMarketTypes[Math.floor(Math.random() * currentMarketTypes.length)];
           }
 
@@ -560,12 +562,22 @@ async function autoGenerateSelections(isRegen = false) {
       // Se falhar na geração, coloca um fallback compatível com a estratégia
       // Priorizar jogadores do favorito no fallback
       if (combinedOdd < 20) {
-        const favoritePlayers = homeIsFavorite ? homePlayers : awayPlayers;
-        const underdogPlayers = homeIsFavorite ? awayPlayers : homePlayers;
-        const p1 = favoritePlayers[0] || { name: "Atacante" };
-        const p2 = favoritePlayers[1] || { name: "Meio-Campo" };
-        const p3 = underdogPlayers[0] || { name: "Jogador" };
-        
+        // Filtrar por posição E especialidade: scorer/assist só FWD/MID com a specialty
+        const filterByPosAndSpec = (marketKey) => {
+          if (marketKey === 'scorer' || marketKey === 'assist') {
+            return (p) => (p.pos === 'FWD' || p.pos === 'MID') && p.specialties && p.specialties.includes(marketKey);
+          }
+          return (p) => p.specialties && p.specialties.includes(marketKey);
+        };
+
+        const favoriteScorer = (homeIsFavorite ? homePlayers : awayPlayers).filter(filterByPosAndSpec('scorer'));
+        const favoriteAssist = (homeIsFavorite ? homePlayers : awayPlayers).filter(filterByPosAndSpec('assist'));
+        const underdogScorer = (homeIsFavorite ? awayPlayers : homePlayers).filter(filterByPosAndSpec('scorer'));
+
+        const p1 = favoriteScorer[0] || favoriteAssist[0] || (homeIsFavorite ? homePlayers : awayPlayers).filter(p => p.pos === 'FWD')[0] || { name: "Atacante", pos: 'FWD' };
+        const p2 = favoriteAssist[0] || favoriteScorer[1] || (homeIsFavorite ? homePlayers : awayPlayers).filter(p => p.pos === 'MID')[0] || { name: "Meio-Campo", pos: 'MID' };
+        const p3 = underdogScorer[0] || (homeIsFavorite ? awayPlayers : homePlayers).filter(p => p.pos === 'FWD')[0] || { name: "Jogador", pos: 'FWD' };
+
         if (tIdx === 0 || tIdx === 1) {
           // Gols e Assistências fallback (2 do favorito, 1 do desfavorecido)
           selectedSelections = [
@@ -576,9 +588,12 @@ async function autoGenerateSelections(isRegen = false) {
           combinedOdd = 21.56;
         } else {
           // Gols Especiais fallback (2 do favorito)
+          const favePlayers = homeIsFavorite ? homePlayers : awayPlayers;
+          const fb1 = favePlayers.find(p => p.specialties && (p.specialties.includes('header') || p.specialties.includes('outsideBox'))) || favePlayers[0] || { name: "Jogador" };
+          const fb2 = favePlayers.find(p => p !== fb1 && p.specialties && (p.specialties.includes('header') || p.specialties.includes('outsideBox'))) || favePlayers[1] || { name: "Jogador" };
           selectedSelections = [
-            { title: `Para ${p1.name} marcar um Cabeceio`, market: "Marcar de Cabeça", odd: 7.00, status: 'ganho', subplus: true },
-            { title: `Para ${p2.name} marcar de Fora da Área`, market: "Marcar de Fora da Área", odd: 8.50, status: 'ganho', subplus: false }
+            { title: `Para ${fb1.name} marcar um Cabeceio`, market: "Marcar de Cabeça", odd: 7.00, status: 'ganho', subplus: true },
+            { title: `Para ${fb2.name} marcar de Fora da Área`, market: "Marcar de Fora da Área", odd: 8.50, status: 'ganho', subplus: false }
           ];
           combinedOdd = 59.50;
         }
