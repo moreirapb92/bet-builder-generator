@@ -514,6 +514,32 @@ function normalizeTeamName(name) {
     console.log(`[Distribuição] timeCasa="${home}"→"${homeNorm}" timeFora="${away}"→"${awayNorm}"`);
 
     // ═══════════════════════════════════════════
+    //  FORÇA DOS TIMES (0.70=forte, 1.50=fraco)
+    // ═══════════════════════════════════════════
+    const teamStrengthMap = {
+      "Brasil": 0.75, "Argentina": 0.75, "França": 0.75, "Inglaterra": 0.78,
+      "Espanha": 0.78, "Alemanha": 0.80, "Portugal": 0.80,
+      "Uruguai": 0.85, "Bélgica": 0.85, "Holanda": 0.85, "Colômbia": 0.88,
+      "Croácia": 0.88, "Marrocos": 0.88,
+      "Turquia": 0.95,
+      "Japão": 1.00, "Coreia do Sul": 1.00, "Suíça": 1.00,
+      "Senegal": 1.00, "Egito": 1.05, "Equador": 1.05, "Costa do Marfim": 1.05,
+      "México": 1.05, "Irã": 1.05, "Tunísia": 1.05, "Arábia Saudita": 1.10,
+      "Panamá": 1.10, "Canadá": 1.10, "Noruega": 1.10,
+      "Gana": 1.20, "Escócia": 1.20, "Paraguai": 1.20, "Suécia": 1.20,
+      "Áustria": 1.20, "Austrália": 1.25, "Catar": 1.25,
+      "Tchéquia": 1.35, "África do Sul": 1.35, "RD Congo": 1.35,
+      "Bósnia": 1.35, "Argélia": 1.35, "Iraque": 1.40,
+      "Uzbequistão": 1.50, "Jordânia": 1.50, "Haiti": 1.50,
+      "Cabo Verde": 1.50, "Curaçao": 1.50, "Nova Zelândia": 1.50, "Bolívia": 1.50,
+      "Real Madrid": 0.70, "Barcelona": 0.70, "Manchester City": 0.72, "Liverpool": 0.72,
+      "Arsenal": 0.75, "Bayern Munich": 0.72, "PSG": 0.75, "Inter Milão": 0.78,
+      "Atlético Madrid": 0.78, "Napoli": 0.80, "Borussia Dortmund": 0.80,
+      "Chelsea": 0.82, "Juventus": 0.82, "Tottenham": 0.85, "Newcastle": 0.85,
+      "Flamengo": 0.80, "Palmeiras": 0.80, "São Paulo": 0.90, "Botafogo": 0.90,
+    };
+
+    // ═══════════════════════════════════════════
     //  DETERMINAR FAVORITO
     // ═══════════════════════════════════════════
     const homeStrength = teamStrengthMap[homeNorm] || 1.0;
