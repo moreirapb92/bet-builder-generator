@@ -479,8 +479,92 @@ function adjustOddsForFavorite(odds, teamName) {
 }
 
 /**
- * Classifica um jogador com base em suas estatísticas reais da API.
- * Quando não há estatísticas, usa a posição como fallback.
+ * Calcula métricas (0-100) para cada mercado baseado em estatísticas reais.
+ * Usa per-90 para normalizar minutos jogados.
+ */
+function calculatePlayerMetrics(posCode, stats) {
+  const metrics = { scorer: 0, assist: 0, header: 0, outsideBox: 0, card: 0 };
+
+  if (!stats) return metrics;
+
+  const goals      = stats?.goals?.total      || 0;
+  const assists    = stats?.goals?.assists     || 0;
+  const keyPasses  = stats?.passes?.key        || 0;
+  const yellowCards = stats?.cards?.yellow     || 0;
+  const redCards   = stats?.cards?.red         || 0;
+  const shots      = stats?.shots?.total       || 0;
+  const shotsOn    = stats?.shots?.on          || 0;
+  const duelsWon   = stats?.duels?.won         || 0;
+  const aerialWon  = stats?.duels?.aerial_won  || 0;
+  const minutes    = stats?.games?.minutes     || 0;
+
+  if (minutes <= 0) return metrics;
+
+  const p90 = 90 / minutes;
+  const gPer90 = goals * p90;
+  const aPer90 = assists * p90;
+  const sPer90 = shots * p90;
+  const soPer90 = shotsOn * p90;
+  const kpPer90 = keyPasses * p90;
+  const ycPer90 = yellowCards * p90;
+  const awPer90 = aerialWon * p90;
+  const dwPer90 = duelsWon * p90;
+
+  // ─── SCORER ─────────────────────────────────
+  // Peso maior para FWD, menor para DEF
+  const scorerWeight = posCode === 'FWD' ? 1.0 : posCode === 'MID' ? 1.8 : 4.0;
+  // gPer90: 0.5+ g/90 é excelente para FWD
+  let scorerRaw = gPer90 * 30 + soPer90 * 3 + (goals > 0 ? Math.min(15, shots / goals * 2) : 0);
+  // Se fez gols em jogos importantes (minutos baixos mas gols altos), dar boost
+  if (goals >= 10) scorerRaw += 20;
+  else if (goals >= 5) scorerRaw += 10;
+  metrics.scorer = Math.min(100, Math.round(scorerRaw / scorerWeight));
+
+  // ─── ASSIST ─────────────────────────────────
+  const assistWeight = posCode === 'FWD' ? 1.0 : posCode === 'MID' ? 1.2 : 3.0;
+  let assistRaw = aPer90 * 30 + kpPer90 * 3;
+  if (assists >= 8) assistRaw += 20;
+  else if (assists >= 4) assistRaw += 10;
+  metrics.assist = Math.min(100, Math.round(assistRaw / assistWeight));
+
+  // ─── HEADER ─────────────────────────────────
+  const headerWeight = posCode === 'DEF' ? 1.0 : posCode === 'FWD' ? 1.2 : 1.5;
+  let headerRaw = awPer90 * 4 + gPer90 * 8 + (duelsWon >= 80 ? 15 : duelsWon >= 40 ? 8 : 0);
+  metrics.header = Math.min(100, Math.round(headerRaw / headerWeight));
+
+  // ─── OUTSIDE BOX ────────────────────────────
+  const obWeight = 1.0;
+  // Quanto mais chutes, maior chance de marcar de fora. ShotsOn é proxy para chutes no alvo
+  let obRaw = sPer90 * 3 + gPer90 * 10 + (shots >= 30 ? 15 : shots >= 15 ? 8 : 0);
+  metrics.outsideBox = Math.min(100, Math.round(obRaw / obWeight));
+
+  // ─── CARD ───────────────────────────────────
+  const cardWeight = posCode === 'DEF' ? 1.0 : posCode === 'MID' ? 1.2 : 1.8;
+  let cardRaw = ycPer90 * 20 + redCards * 15 + dwPer90 * 0.5;
+  metrics.card = Math.min(100, Math.round(cardRaw / cardWeight));
+
+  return metrics;
+}
+
+/**
+ * Converte uma métrica (0-100) em odd aproximada.
+ * Score alto → odd baixa (provável)
+ * Score baixo → odd alta (improvável)
+ */
+function metricToOdd(score) {
+  if (score >= 95) return +(1.50 + Math.random() * 0.30).toFixed(2);
+  if (score >= 85) return +(2.00 + Math.random() * 0.50).toFixed(2);
+  if (score >= 75) return +(2.50 + Math.random() * 1.00).toFixed(2);
+  if (score >= 65) return +(3.50 + Math.random() * 1.50).toFixed(2);
+  if (score >= 50) return +(5.00 + Math.random() * 2.00).toFixed(2);
+  if (score >= 35) return +(7.00 + Math.random() * 3.00).toFixed(2);
+  if (score >= 20) return +(10.00 + Math.random() * 5.00).toFixed(2);
+  return +(20.00 + Math.random() * 30.00).toFixed(2);
+}
+
+/**
+ * Classifica um jogador com base em métricas calculadas das estatísticas reais.
+ * Usa dados da API-Football para determinar quem é mais propenso a cada mercado.
  */
 function classifyPlayer(position, stats) {
   const posUpper = (position || '').toUpperCase();
@@ -488,94 +572,33 @@ function classifyPlayer(position, stats) {
   if (posUpper === 'ATTACKER' || posUpper === 'F') posCode = 'FWD';
   else if (posUpper === 'DEFENDER' || posUpper === 'D') posCode = 'DEF';
 
-  const base = buildBaseMarkets(posCode);
+  const metrics = calculatePlayerMetrics(posCode, stats);
 
-  if (!stats) {
-    // Fallback por posição
-    const defaultSpecs = {
-      FWD: ['scorer', 'header'],
-      MID: ['outsideBox', 'assist'],
-      DEF: ['header', 'card'],
-    };
-    return { posCode, specialties: defaultSpecs[posCode], markets: base };
-  }
-
-  // Extrair estatísticas
-  const goals      = stats?.goals?.total      || 0;
-  const assists    = stats?.goals?.assists     || 0;
-  const keyPasses  = stats?.passes?.key        || 0;
-  const yellowCards = stats?.cards?.yellow     || 0;
-  const shots      = stats?.shots?.total       || 0;
-  const shotsOn    = stats?.shots?.on          || 0;
-  const duelsWon   = stats?.duels?.won         || 0;
-  const aerialWon  = stats?.duels?.aerial_won  || 0; // alguns endpoints fornecem
-  const minutes    = stats?.games?.minutes     || 0;
-
-  // Normalizar por 90 minutos
-  const p90 = minutes > 0 ? (90 / minutes) : 0;
-  const gPer90 = goals * p90;
-  const aPer90 = assists * p90;
-  const sPer90 = shots * p90;
-
+  // Especialidades: baseadas na métrica (≥ 35 para considerar relevante)
   const specialties = [];
+  if (metrics.scorer >= 35) specialties.push('scorer');
+  if (metrics.assist >= 35) specialties.push('assist');
+  if (metrics.header >= 35) specialties.push('header');
+  if (metrics.outsideBox >= 35) specialties.push('outsideBox');
+  if (metrics.card >= 35) specialties.push('card');
 
-  if (posCode === 'FWD') {
-    // GOLS: atacante com regularidade
-    if (gPer90 >= 0.25 || goals >= 5) specialties.push('scorer');
-
-    // CABEÇA: atacante físico → alto volume de duelos aéreos ganhos e gols
-    //   aerialWon nem sempre está disponível; usamos duelsWon como proxy
-    if ((aerialWon >= 50 || duelsWon >= 80) && goals >= 3) specialties.push('header');
-
-    // FORA DA ÁREA: atacante com alto volume de chutes e bom aproveitamento
-    if (sPer90 >= 3.5 && shotsOn >= 30 && goals >= 5) specialties.push('outsideBox');
-
-    // ASSISTÊNCIA: "falso 9" ou extremo que cria muito
-    if (aPer90 >= 0.25 || assists >= 6 || keyPasses >= 55) specialties.push('assist');
-
-    // CARTÃO
-    if (yellowCards >= 6) specialties.push('card');
-
-    if (specialties.length === 0) specialties.push('scorer');
+  // Fallback se não tiver nenhuma especialidade
+  if (specialties.length === 0) {
+    if (posCode === 'FWD') specialties.push('scorer');
+    else if (posCode === 'MID') specialties.push('outsideBox');
+    else specialties.push('card');
   }
 
-  else if (posCode === 'MID') {
-    // FORA DA ÁREA: meia que chega chutando (gols de meia-distância)
-    if (goals >= 3 || sPer90 >= 2.0) specialties.push('outsideBox');
+  // Mercados: odds baseadas nas métricas
+  const markets = {
+    scorer: metricToOdd(metrics.scorer),
+    header: metricToOdd(metrics.header),
+    outsideBox: metricToOdd(metrics.outsideBox),
+    assist: metricToOdd(metrics.assist),
+    card: metricToOdd(metrics.card),
+  };
 
-    // ASSISTÊNCIA: meia criativo
-    if (aPer90 >= 0.20 || assists >= 4 || keyPasses >= 45) specialties.push('assist');
-
-    // CABEÇA: meia alto que sobe em bola parada (estilo Souček)
-    if ((aerialWon >= 60 || duelsWon >= 110) && goals >= 4) specialties.push('header');
-
-    // GOL: meia box-to-box
-    if (gPer90 >= 0.30) specialties.push('scorer');
-
-    // CARTÃO: combativo
-    if (yellowCards >= 7) specialties.push('card');
-
-    if (specialties.length === 0) {
-      if (assists >= 2 || keyPasses >= 25) specialties.push('assist');
-      else specialties.push('outsideBox');
-    }
-  }
-
-  else { // DEF
-    // CABEÇA: zagueiro que marca em bola parada
-    if (goals >= 1 || aerialWon >= 80 || duelsWon >= 120) specialties.push('header');
-
-    // ASSISTÊNCIA: lateral atacante
-    if (assists >= 3 || keyPasses >= 20) specialties.push('assist');
-
-    // CARTÃO: combativo
-    if (yellowCards >= 4) specialties.push('card');
-
-    if (specialties.length === 0) specialties.push('header', 'card');
-  }
-
-  const markets = adjustOdds(base, goals, assists, yellowCards);
-  return { posCode, specialties, markets };
+  return { posCode, specialties, markets, metrics };
 }
 
 // ─────────────────────────────────────────────
@@ -585,12 +608,41 @@ async function fetchSquadFromApiFootball(teamName) {
   const apiKey = process.env.API_FOOTBALL_KEY;
   if (!apiKey || apiKey === 'SUA_CHAVE_AQUI' || apiKey.length < 10) return null;
 
-  const normalizedTeam = teamName.trim().toLowerCase();
+  let normalizedTeam = teamName.trim().toLowerCase();
 
   // 1. Cache em disco
   if (diskCache[normalizedTeam]) {
     console.log(`[Cache] Dados do disco para: ${teamName}`);
     return diskCache[normalizedTeam];
+  }
+
+  // 1b. Normalizar nome do time: "Scotland" → "Escócia", "Australia" → "Austrália", etc.
+  // Primeiro tenta reverse lookup no mapa de traduções
+  const reverseTranslations = {};
+  for (const [ptName, enName] of Object.entries(teamNameTranslations)) {
+    const enNorm = enName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    // Preferir versão acentuada (e.g. "escócia" em vez de "escocia")
+    if (!reverseTranslations[enNorm] || ptName.normalize('NFD').replace(/[\u0300-\u036f]/g, '') !== ptName) {
+      reverseTranslations[enNorm] = ptName;
+    }
+  }
+  // Também mapeia confirmedStarters (versão normalizada sem acento)
+  for (const key of Object.keys(confirmedStarters)) {
+    const norm = key.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (!reverseTranslations[norm]) {
+      reverseTranslations[norm] = key;
+    }
+  }
+  for (const key of Object.keys(playersData)) {
+    const norm = key.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (!reverseTranslations[norm]) {
+      reverseTranslations[norm] = key;
+    }
+  }
+  const normalizedInput = normalizedTeam.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (reverseTranslations[normalizedInput]) {
+    teamName = reverseTranslations[normalizedInput];
+    normalizedTeam = teamName.trim().toLowerCase();
   }
 
   // 2. Para seleções da Copa 2026, usar titulares confirmados
@@ -656,7 +708,8 @@ async function fetchSquadFromApiFootball(teamName) {
           name: starterName,
           pos: localPlayer.pos,
           specialties: localPlayer.specialties,
-          markets: localPlayer.markets
+          markets: localPlayer.markets,
+          metrics: localPlayer.metrics || null
         });
         console.log(`  ✓ ${starterName} → LOCAL (especialidades manuais)`);
         continue;
@@ -695,13 +748,14 @@ async function fetchSquadFromApiFootball(teamName) {
         continue;
       }
       
-      const { posCode, specialties, markets } = classifyPlayer(position, stats);
+      const { posCode, specialties, markets, metrics } = classifyPlayer(position, stats);
       
       players.push({
         name: starterName,
         pos: posCode,
         specialties,
-        markets
+        markets,
+        metrics: stats ? metrics : null
       });
       console.log(`  ⚠ ${starterName} → API (stats: ${stats ? 'sim' : 'não'})`);
     }
@@ -755,8 +809,8 @@ async function fetchSquadFromApiFootball(teamName) {
       .map(p => {
         const stats = statsMap[p.name] || null;
         const minutes = stats?.games?.minutes || 0;
-        const { posCode, specialties, markets } = classifyPlayer(p.position, stats);
-        return { name: p.name, pos: posCode, specialties, markets, minutes };
+        const { posCode, specialties, markets, metrics } = classifyPlayer(p.position, stats);
+        return { name: p.name, pos: posCode, specialties, markets, metrics: stats ? metrics : null, minutes };
       });
 
     allPlayers.sort((a, b) => b.minutes - a.minutes);
@@ -1189,6 +1243,35 @@ const matchesList = [
   { id: "ucl-1",  home: "Real Madrid",   away: "Arsenal",        league: "Champions League - Final", date: "31/05/2026", time: "16:00", status: "Aguardando", score: "0-0", timeElapsed: "00:00" },
 ];
 
+// Helper: infere métricas aproximadas das odds quando não há stats
+function ensureMetrics(player) {
+  if (!player.metrics) player.metrics = {};
+  const keys = ['scorer', 'assist', 'header', 'outsideBox', 'card'];
+  // Se todas as métricas são 0, o jogador não tinha stats → derivar das odds
+  const allZero = keys.every(k => !player.metrics[k]);
+  if (allZero) {
+    for (const key of keys) {
+      if (player.markets?.[key] != null) {
+        player.metrics[key] = Math.max(0, Math.min(100, Math.round(100 - player.markets[key] * 3)));
+      } else {
+        player.metrics[key] = 0;
+      }
+    }
+  } else {
+    // Preencher métricas individuais faltantes
+    for (const key of keys) {
+      if (player.metrics[key] === undefined || player.metrics[key] === null) {
+        if (player.markets?.[key] != null) {
+          player.metrics[key] = Math.max(0, Math.min(100, Math.round(100 - player.markets[key] * 3)));
+        } else {
+          player.metrics[key] = 0;
+        }
+      }
+    }
+  }
+  return player;
+}
+
 // ─────────────────────────────────────────────
 //  ENDPOINTS
 // ─────────────────────────────────────────────
@@ -1210,9 +1293,12 @@ app.get('/api/players', async (req, res) => {
     return 'MID';
   }
 
+  // Garantir que todos os jogadores tenham métricas
+  const fillMetrics = (players) => players.map(p => ensureMetrics(p));
+
   // Cache em disco (jogadores da API)
   if (diskCache[normalizedTeam]) {
-    const cached = diskCache[normalizedTeam].map(p => ({ ...p, pos: normalizePos(p) }));
+    const cached = fillMetrics(diskCache[normalizedTeam].map(p => ({ ...p, pos: normalizePos(p) })));
     return res.json({ players: cached, source: 'cache' });
   }
 
@@ -1239,6 +1325,7 @@ app.get('/api/players', async (req, res) => {
         }
       }
     }
+    fillMetrics(apiPlayers);
     diskCache[normalizedTeam] = apiPlayers;
     saveDiskCache();
     return res.json({ players: apiPlayers, source: 'api' });
@@ -1247,7 +1334,7 @@ app.get('/api/players', async (req, res) => {
   // Fallback: dados locais se API falhar
   const localData = playersData[team];
   if (localData?.players?.length > 0) {
-    const players = localData.players.map(p => ({ ...p, pos: normalizePos(p) }));
+    const players = fillMetrics(localData.players.map(p => ({ ...p, pos: normalizePos(p) })));
     return res.json({ players, source: 'local' });
   }
 

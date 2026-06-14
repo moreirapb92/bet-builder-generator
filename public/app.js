@@ -344,17 +344,15 @@ function setupCustomMatch() {
   autoGenerateSelections();
 }
 
-// GERAR PALPITES DE FORMA INTELIGENTE (ODD 20+)
+// GERAR PALPITES DE FORMA INTELIGENTE
 async function autoGenerateSelections(isRegen = false) {
   const home = inputHomeTeam.value;
   const away = inputAwayTeam.value;
 
   try {
-    // Mostrar feedback de carregamento
     const btnGerar = document.getElementById('btnAutoGenerate');
     if (btnGerar) { btnGerar.textContent = '⏳ Buscando jogadores...'; btnGerar.disabled = true; }
 
-    // Buscar jogadores para ambos os times
     const [homeRes, awayRes] = await Promise.all([
       fetch(`/api/players?team=${encodeURIComponent(home)}`).then(r => r.json()),
       fetch(`/api/players?team=${encodeURIComponent(away)}`).then(r => r.json())
@@ -362,17 +360,15 @@ async function autoGenerateSelections(isRegen = false) {
 
     if (btnGerar) { btnGerar.textContent = '✨ Gerar Palpites Automáticos'; btnGerar.disabled = false; }
 
-
     let homePlayers = homeRes.players || [];
     let awayPlayers = awayRes.players || [];
 
-    // Avisar se algum time ficou sem jogadores
     if (homePlayers.length === 0) {
-      alert(`⚠️ Nenhum jogador encontrado para "${home}".\nVerifique se o nome do time está correto ou se a chave da API está configurada.`);
+      alert(`⚠️ Nenhum jogador encontrado para "${home}".`);
       return;
     }
     if (awayPlayers.length === 0) {
-      alert(`⚠️ Nenhum jogador encontrado para "${away}".\nVerifique se o nome do time está correto ou se a chave da API está configurada.`);
+      alert(`⚠️ Nenhum jogador encontrado para "${away}".`);
       return;
     }
 
@@ -385,7 +381,7 @@ async function autoGenerateSelections(isRegen = false) {
     ];
 
     // ═══════════════════════════════════════════
-    //  DETERMINAR FAVORITO (peso para seleção)
+    //  DETERMINAR FAVORITO
     // ═══════════════════════════════════════════
     const teamStrengthMap = {
       "Brasil": 0.75, "Argentina": 0.75, "França": 0.75, "Inglaterra": 0.78,
@@ -411,204 +407,127 @@ async function autoGenerateSelections(isRegen = false) {
 
     const homeStrength = teamStrengthMap[home] || 1.0;
     const awayStrength = teamStrengthMap[away] || 1.0;
-    
-    // homeStrength menor = favorito
     const homeIsFavorite = homeStrength < awayStrength;
     const awayIsFavorite = awayStrength < homeStrength;
     const strengthDiff = Math.abs(homeStrength - awayStrength);
-    
-    // Calcular peso de seleção: favorito ganha mais peso
-    // Se diff > 0.2 = superfavorito (75% favorito, 25% desfavorecido)
-    // Se diff > 0.1 = favorito (65% favorito, 35% desfavorecido)
-    // Se diff <= 0.1 = equilibrado (55% casa, 45% fora)
-    let homeWeight, awayWeight;
-    if (homeIsFavorite) {
-      homeWeight = strengthDiff > 0.2 ? 0.75 : strengthDiff > 0.1 ? 0.65 : 0.55;
-      awayWeight = 1 - homeWeight;
-    } else if (awayIsFavorite) {
-      awayWeight = strengthDiff > 0.2 ? 0.75 : strengthDiff > 0.1 ? 0.65 : 0.55;
-      homeWeight = 1 - awayWeight;
+
+    // Classificar nível de favoritismo
+    let isFav, isUnd, favPool, undPool;
+    if (strengthDiff <= 0.10) {
+      isFav = null; isUnd = null; favPool = null; undPool = null;
+    } else if (homeIsFavorite) {
+      isFav = 'home'; isUnd = 'away'; favPool = homePlayers; undPool = awayPlayers;
     } else {
-      homeWeight = 0.55;
-      awayWeight = 0.45;
+      isFav = 'away'; isUnd = 'home'; favPool = awayPlayers; undPool = homePlayers;
     }
 
     // Gerar os 4 bilhetes
     for (let tIdx = 0; tIdx < 4; tIdx++) {
       let combinedOdd = 1;
       let selectedSelections = [];
-      let attempts = 0;
-      const maxAttempts = 100;
 
-      // Define a estratégia do bilhete:
-      // Bilhetes 0 e 1: Gols e Assistências (Apenas 'scorer' e 'assist')
-      // Bilhetes 2 e 3: Gols Especiais (Apenas 'header' e 'outsideBox')
-      // Cada par tem ordem alternada para gerar combinações diferentes
       const isGoalAssist = (tIdx === 0 || tIdx === 1);
       const allowedKeys = isGoalAssist ? ['scorer', 'assist'] : ['header', 'outsideBox'];
-      const currentMarketTypes = marketTypes.filter(m => allowedKeys.includes(m.key));
+      const numSelections = isGoalAssist ? 3 : 2;
 
-      // Inverter ordem dos mercados entre tickets do mesmo tipo (evita duplicatas)
+      // Ordem alternada dos mercados entre tickets do mesmo par
       const marketOrder = isGoalAssist
         ? (tIdx === 0 ? ['scorer', 'assist'] : ['assist', 'scorer'])
         : (tIdx === 2 ? ['header', 'outsideBox'] : ['outsideBox', 'header']);
 
-      while ((combinedOdd < 20 || combinedOdd > 200) && attempts < maxAttempts) {
-        combinedOdd = 1;
-        selectedSelections = [];
-        attempts++;
+      // ─── DISTRIBUIÇÃO DOS TIMES ─────────────────
+      // teamOrder[i] define qual time joga na i-ésima posição
+      let teamOrder = [];
+      const isClearFav = isFav && strengthDiff > 0.20;
 
-        // Se for Gols/Assists, 3 palpites (múltipla mais encorpada)
-        // Se for Gols Especiais, 2 palpites bastam devido às odds altas
-        const numSelections = isGoalAssist
-          ? 3
-          : 2;
-          
-        const usedPlayers = new Set();
-        let homeCount = 0;
-        let awayCount = 0;
+      if (isClearFav) {
+        // Favorito claro: 3 sel → 2 fav + 1 und; 2 sel → 2 fav
+        if (numSelections === 3) teamOrder = [isFav, isFav, isUnd];
+        else teamOrder = [isFav, isFav];
+      } else if (isFav) {
+        // Favorito leve: 3 sel → 2 fav + 1 und
+        if (numSelections === 3) teamOrder = [isFav, isFav, isUnd];
+        else teamOrder = [isFav, isUnd];
+      } else {
+        // Equilibrado: 3 sel → 2 de um + 1 do outro; 2 sel → 1 cada
+        if (numSelections === 3) teamOrder = ['home', 'away', 'home'];
+        else teamOrder = ['home', 'away'];
+      }
 
-        // Para bilhetes Gols/Assists, garantir pelo menos 1 de cada mercado
-        const usedMarkets = new Set();
+      // Tickets 1/3: inverter ordem para variar entre pares
+      if (tIdx === 1 || tIdx === 3) teamOrder = [...teamOrder].reverse();
 
-        for (let i = 0; i < numSelections; i++) {
-          // Escolher time baseado no peso do favoritismo
-          const isHome = Math.random() < homeWeight;
-          const playerPool = isHome ? homePlayers : awayPlayers;
-          if (playerPool.length === 0) continue;
+      // Tentar gerar (sem loop de tentativas – deterministico)
+      const usedNames = new Set();
+      const usedMarkets = new Set();
 
-          // Limitar jogadores do desfavorecido
-          const maxFromUnderdog = homeIsFavorite ? 
-            (awayWeight > 0.4 ? 2 : 1) : 
-            (homeWeight > 0.4 ? 2 : 1);
-          
-          if (isHome && !homeIsFavorite && homeCount >= maxFromUnderdog) continue;
-          if (!isHome && !awayIsFavorite && awayCount >= maxFromUnderdog) continue;
+      for (let i = 0; i < numSelections; i++) {
+        const side = teamOrder[i % teamOrder.length];
+        const isHome = side === 'home';
+        const pool = isHome ? homePlayers : awayPlayers;
 
-          // Alternar ordem dos mercados entre tickets para gerar combinações diferentes
-          let market;
-          const marketIdx = i < marketOrder.length ? i : (i % marketOrder.length);
-          const desiredMarket = marketOrder[marketIdx];
+        const desiredMarket = marketOrder[i % marketOrder.length];
 
-          // Seguir a ordem do mercado definida (alternada entre tickets do mesmo par)
-          if (usedMarkets.has(desiredMarket)) {
-            const alt = marketOrder.find(m => !usedMarkets.has(m));
-            market = alt ? currentMarketTypes.find(m => m.key === alt) : currentMarketTypes[Math.floor(Math.random() * currentMarketTypes.length)];
-          } else {
-            market = currentMarketTypes.find(m => m.key === desiredMarket);
-          }
+        // Se já usou esse mercado, escolher o alternativo
+        let marketKey = desiredMarket;
+        if (usedMarkets.has(marketKey)) {
+          const alt = marketOrder.find(m => !usedMarkets.has(m));
+          if (alt) marketKey = alt;
+        }
 
-          // Filtra jogadores com essa especialidade e ordena por odds (menor = melhor)
-          // Para scorer/assist: só FWD e MID (não zagueiro/goleiro)
-          // Para header/outsideBox: todos podem
-          let matchingPlayers = playerPool
-            .filter(p => {
-              if (!p.specialties || !p.specialties.includes(market.key)) return false;
-              if (market.key === 'scorer' || market.key === 'assist') {
-                return p.pos === 'FWD' || p.pos === 'MID';
-              }
-              return true;
-            })
-            .sort((a, b) => (a.markets?.[market.key] || 99) - (b.markets?.[market.key] || 99));
-          if (matchingPlayers.length === 0) {
-            // Se não tem jogador com essa especialidade, pular esta iteração
-            // NÃO forçar jogador que não tem a especialidade
-            continue;
-          }
-
-          // Ticket 0/2: melhor jogador; Ticket 1/3: segundo melhor (para variar entre bilhetes)
-          const pickIdx = (tIdx === 1 || tIdx === 3) ? Math.min(1, matchingPlayers.length - 1) : 0;
-          const player = matchingPlayers[pickIdx];
-          
-          if (usedPlayers.has(player.name)) continue;
-          usedPlayers.add(player.name);
-          usedMarkets.add(market.key);
-          
-          // Contar jogadores de cada time
-          if (isHome) homeCount++;
-          else awayCount++;
-
-          // Ajusta para uma especialidade do jogador que seja permitida na estratégia
-          let finalMarket = market;
-          if (player.specialties && player.specialties.length > 0 && !player.specialties.includes(market.key)) {
-            const allowedPlayerSpecs = player.specialties.filter(s => allowedKeys.includes(s));
-            if (allowedPlayerSpecs.length > 0) {
-              const randomSpec = allowedPlayerSpecs[Math.floor(Math.random() * allowedPlayerSpecs.length)];
-              const matchingMarket = marketTypes.find(m => m.key === randomSpec);
-              if (matchingMarket) {
-                finalMarket = matchingMarket;
-              }
+        const player = pickBest(pool, marketKey, usedNames);
+        if (!player) {
+          // Tentar mercado alternativo
+          const altKey = marketOrder.find(m => m !== marketKey);
+          if (altKey) {
+            const altPlayer = pickBest(pool, altKey, usedNames);
+            if (altPlayer) {
+              usedNames.add(altPlayer.name);
+              usedMarkets.add(altKey);
+              const mt = marketTypes.find(m => m.key === altKey);
+              const odd = altPlayer.markets?.[altKey] || (altKey === 'scorer' ? 2.50 : altKey === 'assist' ? 3.50 : 7.00);
+              selectedSelections.push({ title: mt.format(altPlayer.name), market: mt.label, odd, status: 'ganho', subplus: true });
+              combinedOdd *= odd;
             }
           }
-
-          // Usa odds fixa do jogador (sem variação aleatória)
-          const finalOdd = player.markets[finalMarket.key] || 3.00;
-
-          selectedSelections.push({
-            title: finalMarket.format(player.name),
-            market: finalMarket.label,
-            odd: finalOdd,
-            status: 'ganho',
-            subplus: Math.random() > 0.3
-          });
-
-          combinedOdd *= finalOdd;
+          continue;
         }
+
+        usedNames.add(player.name);
+        usedMarkets.add(marketKey);
+        const mt = marketTypes.find(m => m.key === marketKey);
+        const odd = player.markets?.[marketKey] || (marketKey === 'scorer' ? 2.50 : marketKey === 'assist' ? 3.50 : marketKey === 'header' ? 7.00 : 8.50);
+        selectedSelections.push({ title: mt.format(player.name), market: mt.label, odd, status: 'ganho', subplus: Math.random() > 0.3 });
+        combinedOdd *= odd;
       }
 
-      // Se falhar na geração, coloca um fallback compatível com a estratégia
-      // Priorizar jogadores do favorito no fallback
-      if (combinedOdd < 20) {
-        // Filtrar por posição E especialidade: scorer/assist só FWD/MID com a specialty
-        const filterByPosAndSpec = (marketKey) => {
-          if (marketKey === 'scorer' || marketKey === 'assist') {
-            return (p) => (p.pos === 'FWD' || p.pos === 'MID') && p.specialties && p.specialties.includes(marketKey);
-          }
-          return (p) => p.specialties && p.specialties.includes(marketKey);
-        };
+      // Fallback se não gerou nada
+      if (selectedSelections.length < numSelections) {
+        const fSide = isFav || (homeStrength <= awayStrength ? 'home' : 'away');
+        const fPool = fSide === 'home' ? homePlayers : awayPlayers;
+        const uPool = fSide === 'home' ? awayPlayers : homePlayers;
 
-        const favoriteScorer = (homeIsFavorite ? homePlayers : awayPlayers).filter(filterByPosAndSpec('scorer'));
-        const favoriteAssist = (homeIsFavorite ? homePlayers : awayPlayers).filter(filterByPosAndSpec('assist'));
-        const underdogScorer = (homeIsFavorite ? awayPlayers : homePlayers).filter(filterByPosAndSpec('scorer'));
+        const best = (pool, key) => pickBest(pool, key, new Set());
+        const odd = (pool, key) => best(pool, key)?.markets?.[key] || (key === 'scorer' ? 2.50 : key === 'assist' ? 3.50 : key === 'header' ? 7.00 : 8.50);
 
-        const p1 = favoriteScorer[0] || favoriteAssist[0] || (homeIsFavorite ? homePlayers : awayPlayers).filter(p => p.pos === 'FWD')[0] || { name: "Atacante", pos: 'FWD' };
-        const p2 = favoriteAssist[0] || favoriteScorer[1] || (homeIsFavorite ? homePlayers : awayPlayers).filter(p => p.pos === 'MID')[0] || { name: "Meio-Campo", pos: 'MID' };
-        const p3 = underdogScorer[0] || (homeIsFavorite ? awayPlayers : homePlayers).filter(p => p.pos === 'FWD')[0] || { name: "Jogador", pos: 'FWD' };
-
-        if (tIdx === 0 || tIdx === 1) {
-          // Gols e Assistências fallback (2 do favorito, 1 do desfavorecido)
-          // Alternar ordem entre tickets 0 e 1
-          const useScorerFirst = (tIdx === 0);
-          const scorerPlayer = useScorerFirst ? p1 : p2;
-          const assistPlayer = useScorerFirst ? p2 : p1;
+        if (isGoalAssist) {
           selectedSelections = [
-            { title: `Para ${scorerPlayer.name} marcar`, market: "Para Marcar", odd: 2.20, status: 'ganho', subplus: true },
-            { title: `${assistPlayer.name} - Para Dar Assistência`, market: "Jogador a Dar Assistência", odd: 3.50, status: 'ganho', subplus: true },
-            { title: `Para ${p3.name} marcar`, market: "Para Marcar", odd: 2.80, status: 'ganho', subplus: false }
+            { title: `Para ${best(fPool, 'scorer')?.name || 'Jogador'} marcar`, market: "Para Marcar", odd: odd(fPool, 'scorer'), status: 'ganho', subplus: true },
+            { title: `${best(fPool, 'assist')?.name || 'Jogador'} - Para Dar Assistência`, market: "Jogador a Dar Assistência", odd: odd(fPool, 'assist'), status: 'ganho', subplus: true },
+            { title: `Para ${best(uPool, 'scorer')?.name || 'Jogador'} marcar`, market: "Para Marcar", odd: odd(uPool, 'scorer'), status: 'ganho', subplus: false }
           ];
-          combinedOdd = 21.56;
         } else {
-          // Gols Especiais fallback (2 do favorito com mercados misturados)
-          const favePlayers = homeIsFavorite ? homePlayers : awayPlayers;
-          const fbHeader = favePlayers.find(p => p.specialties && p.specialties.includes('header')) || favePlayers[0] || { name: "Jogador" };
-          const fbOutside = favePlayers.find(p => p !== fbHeader && p.specialties && p.specialties.includes('outsideBox')) || favePlayers[1] || { name: "Jogador" };
-          // Ticket 2: header + outsideBox; Ticket 3: outsideBox + header
-          const useHeaderFirst = (tIdx === 2);
-          const hPlayer = useHeaderFirst ? fbHeader : fbOutside;
-          const oPlayer = useHeaderFirst ? fbOutside : fbHeader;
           selectedSelections = [
-            { title: `Para ${hPlayer.name} marcar um Cabeceio`, market: "Marcar de Cabeça", odd: 7.00, status: 'ganho', subplus: true },
-            { title: `Para ${oPlayer.name} marcar de Fora da Área`, market: "Marcar de Fora da Área", odd: 8.50, status: 'ganho', subplus: false }
+            { title: `Para ${best(fPool, 'header')?.name || 'Jogador'} marcar um Cabeceio`, market: "Marcar de Cabeça", odd: odd(fPool, 'header'), status: 'ganho', subplus: true },
+            { title: `Para ${best(fPool, 'outsideBox')?.name || 'Jogador'} marcar de Fora da Área`, market: "Marcar de Fora da Área", odd: odd(fPool, 'outsideBox'), status: 'ganho', subplus: false }
           ];
-          combinedOdd = 59.50;
         }
+        combinedOdd = selectedSelections.reduce((a, s) => a * s.odd, 1);
       }
 
-      // Salva no estado do ticket correspondente
       tickets[tIdx].selections = selectedSelections;
     }
 
-    // Recarrega o estado do bilhete atualmente selecionado (aba ativa)
     loadActiveTicketState();
     renderSelectionsEditor();
     updateTicketPreview();
@@ -616,6 +535,33 @@ async function autoGenerateSelections(isRegen = false) {
   } catch (err) {
     console.error("Erro ao auto-gerar múltiplos palpites:", err);
   }
+}
+
+// Helper: obter métrica (0-100) para um jogador e mercado
+function getMetric(p, key) {
+  return p.metrics?.[key] ?? (p.markets?.[key] ? Math.max(0, Math.min(100, 100 - p.markets[key] * 3)) : 0);
+}
+
+// Helper: pegar o melhor jogador de um time para um mercado (sem repetir nome)
+function pickBest(players, marketKey, forbiddenNames = new Set()) {
+  const valid = players
+    .filter(p => {
+      if (forbiddenNames.has(p.name)) return false;
+      if (marketKey === 'scorer' || marketKey === 'assist') {
+        return (p.pos === 'FWD' || p.pos === 'MID') && p.specialties && p.specialties.includes(marketKey);
+      }
+      return true;
+    })
+    .sort((a, b) => getMetric(b, marketKey) - getMetric(a, marketKey));
+  if (valid.length > 0) return valid[0];
+  // Fallback: liberar restrição para header/outsideBox
+  if (marketKey === 'header' || marketKey === 'outsideBox') {
+    const fb = players
+      .filter(p => !forbiddenNames.has(p.name))
+      .sort((a, b) => getMetric(b, marketKey) - getMetric(a, marketKey));
+    return fb[0] || null;
+  }
+  return null;
 }
 
 // RENDERIZAR EDICAO DAS SELECOES NO PAINEL
