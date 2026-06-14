@@ -490,16 +490,12 @@ async function autoGenerateSelections(isRegen = false) {
           const marketIdx = i < marketOrder.length ? i : (i % marketOrder.length);
           const desiredMarket = marketOrder[marketIdx];
 
-          if (isGoalAssist) {
-            // Se esse mercado já foi usado, pegar o outro
-            if (usedMarkets.has(desiredMarket)) {
-              const alt = marketOrder.find(m => !usedMarkets.has(m));
-              market = alt ? currentMarketTypes.find(m => m.key === alt) : currentMarketTypes[Math.floor(Math.random() * currentMarketTypes.length)];
-            } else {
-              market = currentMarketTypes.find(m => m.key === desiredMarket);
-            }
+          // Seguir a ordem do mercado definida (alternada entre tickets do mesmo par)
+          if (usedMarkets.has(desiredMarket)) {
+            const alt = marketOrder.find(m => !usedMarkets.has(m));
+            market = alt ? currentMarketTypes.find(m => m.key === alt) : currentMarketTypes[Math.floor(Math.random() * currentMarketTypes.length)];
           } else {
-            market = currentMarketTypes[Math.floor(Math.random() * currentMarketTypes.length)];
+            market = currentMarketTypes.find(m => m.key === desiredMarket);
           }
 
           // Filtra jogadores com essa especialidade e ordena por odds (menor = melhor)
@@ -520,8 +516,9 @@ async function autoGenerateSelections(isRegen = false) {
             continue;
           }
 
-          // Pega o MELHOR jogador (menor odd = mais provável)
-          const player = matchingPlayers[0];
+          // Ticket 0/2: melhor jogador; Ticket 1/3: segundo melhor (para variar entre bilhetes)
+          const pickIdx = (tIdx === 1 || tIdx === 3) ? Math.min(1, matchingPlayers.length - 1) : 0;
+          const player = matchingPlayers[pickIdx];
           
           if (usedPlayers.has(player.name)) continue;
           usedPlayers.add(player.name);
@@ -580,20 +577,28 @@ async function autoGenerateSelections(isRegen = false) {
 
         if (tIdx === 0 || tIdx === 1) {
           // Gols e Assistências fallback (2 do favorito, 1 do desfavorecido)
+          // Alternar ordem entre tickets 0 e 1
+          const useScorerFirst = (tIdx === 0);
+          const scorerPlayer = useScorerFirst ? p1 : p2;
+          const assistPlayer = useScorerFirst ? p2 : p1;
           selectedSelections = [
-            { title: `Para ${p1.name} marcar`, market: "Para Marcar", odd: 2.20, status: 'ganho', subplus: true },
-            { title: `${p2.name} - Para Dar Assistência`, market: "Jogador a Dar Assistência", odd: 3.50, status: 'ganho', subplus: true },
+            { title: `Para ${scorerPlayer.name} marcar`, market: "Para Marcar", odd: 2.20, status: 'ganho', subplus: true },
+            { title: `${assistPlayer.name} - Para Dar Assistência`, market: "Jogador a Dar Assistência", odd: 3.50, status: 'ganho', subplus: true },
             { title: `Para ${p3.name} marcar`, market: "Para Marcar", odd: 2.80, status: 'ganho', subplus: false }
           ];
           combinedOdd = 21.56;
         } else {
-          // Gols Especiais fallback (2 do favorito)
+          // Gols Especiais fallback (2 do favorito com mercados misturados)
           const favePlayers = homeIsFavorite ? homePlayers : awayPlayers;
-          const fb1 = favePlayers.find(p => p.specialties && (p.specialties.includes('header') || p.specialties.includes('outsideBox'))) || favePlayers[0] || { name: "Jogador" };
-          const fb2 = favePlayers.find(p => p !== fb1 && p.specialties && (p.specialties.includes('header') || p.specialties.includes('outsideBox'))) || favePlayers[1] || { name: "Jogador" };
+          const fbHeader = favePlayers.find(p => p.specialties && p.specialties.includes('header')) || favePlayers[0] || { name: "Jogador" };
+          const fbOutside = favePlayers.find(p => p !== fbHeader && p.specialties && p.specialties.includes('outsideBox')) || favePlayers[1] || { name: "Jogador" };
+          // Ticket 2: header + outsideBox; Ticket 3: outsideBox + header
+          const useHeaderFirst = (tIdx === 2);
+          const hPlayer = useHeaderFirst ? fbHeader : fbOutside;
+          const oPlayer = useHeaderFirst ? fbOutside : fbHeader;
           selectedSelections = [
-            { title: `Para ${fb1.name} marcar um Cabeceio`, market: "Marcar de Cabeça", odd: 7.00, status: 'ganho', subplus: true },
-            { title: `Para ${fb2.name} marcar de Fora da Área`, market: "Marcar de Fora da Área", odd: 8.50, status: 'ganho', subplus: false }
+            { title: `Para ${hPlayer.name} marcar um Cabeceio`, market: "Marcar de Cabeça", odd: 7.00, status: 'ganho', subplus: true },
+            { title: `Para ${oPlayer.name} marcar de Fora da Área`, market: "Marcar de Fora da Área", odd: 8.50, status: 'ganho', subplus: false }
           ];
           combinedOdd = 59.50;
         }
