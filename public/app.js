@@ -372,6 +372,132 @@ async function autoGenerateSelections(isRegen = false) {
       return;
     }
 
+// ─── NORMALIZAÇÃO DE NOMES DE TIMES ─────────────────
+// A API retorna nomes em inglês (ex: "Turkey", "Australia") mas
+// o teamStrengthMap usa português (ex: "Turquia", "Austrália")
+const teamNameToPortuguese = {
+  "australia": "Austrália",
+  "brazil": "Brasil",
+  "türkiye": "Turquia",
+  "turkey": "Turquia",
+  "t r turkey": "Turquia",
+  "tr turkey": "Turquia",
+  "tr turquia": "Turquia",
+  "japan": "Japão",
+  "south korea": "Coreia do Sul",
+  "czech republic": "Tchéquia",
+  "croatia": "Croácia",
+  "serbia": "Sérvia",
+  "denmark": "Dinamarca",
+  "switzerland": "Suíça",
+  "austria": "Áustria",
+  "netherlands": "Holanda",
+  "belgium": "Bélgica",
+  "spain": "Espanha",
+  "england": "Inglaterra",
+  "france": "França",
+  "germany": "Alemanha",
+  "portugal": "Portugal",
+  "italy": "Itália",
+  "uruguay": "Uruguai",
+  "colombia": "Colômbia",
+  "argentina": "Argentina",
+  "paraguay": "Paraguai",
+  "peru": "Peru",
+  "venezuela": "Venezuela",
+  "chile": "Chile",
+  "bolivia": "Bolívia",
+  "ecuador": "Equador",
+  "ivory coast": "Costa do Marfim",
+  "morocco": "Marrocos",
+  "egypt": "Egito",
+  "senegal": "Senegal",
+  "nigeria": "Nigéria",
+  "cameroon": "Camarões",
+  "ghana": "Gana",
+  "algeria": "Argélia",
+  "tunisia": "Tunísia",
+  "south africa": "África do Sul",
+  "saudi arabia": "Arábia Saudita",
+  "united states": "Estados Unidos",
+  "canada": "Canadá",
+  "mexico": "México",
+  "panama": "Panamá",
+  "iran": "Irã",
+  "iraq": "Iraque",
+  "jordan": "Jordânia",
+  "uzbekistan": "Uzbequistão",
+  "new zealand": "Nova Zelândia",
+  "haiti": "Haiti",
+  "costa rica": "Costa Rica",
+  "scotland": "Escócia",
+  "poland": "Polônia",
+  "romania": "Romênia",
+  "sweden": "Suécia",
+  "norway": "Noruega",
+  "croatia": "Croácia",
+  "qatar": "Catar",
+  "cabo verde": "Cabo Verde",
+  "cape verde": "Cabo Verde",
+  "curaçao": "Curaçao",
+  "curacao": "Curaçao",
+  "dr congo": "RD Congo",
+  "rd congo": "RD Congo",
+  "bosnia": "Bósnia",
+  "austrália": "Austrália",
+  "escócia": "Escócia",
+  "canadá": "Canadá",
+  "tchéquia": "Tchéquia",
+  "inglaterra": "Inglaterra",
+  "alemanha": "Alemanha",
+  "espanha": "Espanha",
+  "frança": "França",
+  "portugal": "Portugal",
+  "holanda": "Holanda",
+  "bélgica": "Bélgica",
+  "croácia": "Croácia",
+  "uruguai": "Uruguai",
+  "colômbia": "Colômbia",
+  "argentina": "Argentina",
+  "sérvia": "Sérvia",
+  "dinamarca": "Dinamarca",
+  "marrocos": "Marrocos",
+  "egito": "Egito",
+  "senegal": "Senegal",
+  "nigéria": "Nigéria",
+  "gana": "Gana",
+  "argélia": "Argélia",
+  "tunísia": "Tunísia",
+  "áfrica do sul": "África do Sul",
+  "arábia saudita": "Arábia Saudita",
+  "irã": "Irã",
+  "iraque": "Iraque",
+  "suíça": "Suíça",
+  "áustria": "Áustria",
+  "polônia": "Polônia",
+  "suécia": "Suécia",
+  "noruega": "Noruega",
+  "romênia": "Romênia",
+  "paraguai": "Paraguai",
+  "canadá": "Canadá",
+  "méxico": "México",
+  "panamá": "Panamá",
+  "equador": "Equador",
+  "bolívia": "Bolívia",
+  "coreia do sul": "Coreia do Sul",
+  "nova zelândia": "Nova Zelândia",
+  "uzbequistão": "Uzbequistão",
+};
+
+function normalizeTeamName(name) {
+  if (!name) return name;
+  const trimmed = name.trim();
+  // Tenta pela tabela de tradução (inglês → português)
+  const key = trimmed.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (teamNameToPortuguese[key]) return teamNameToPortuguese[key];
+  return trimmed;
+}
+
     const marketTypes = [
       { key: 'scorer', label: 'Para Marcar', format: (p) => `Para ${p} marcar` },
       { key: 'header', label: 'Marcar de Cabeça', format: (p) => `Para ${p} marcar um Cabeceio` },
@@ -381,32 +507,17 @@ async function autoGenerateSelections(isRegen = false) {
     ];
 
     // ═══════════════════════════════════════════
+    //  NORMALIZAR NOMES DOS TIMES (inglês → português)
+    // ═══════════════════════════════════════════
+    const homeNorm = normalizeTeamName(home);
+    const awayNorm = normalizeTeamName(away);
+    console.log(`[Distribuição] timeCasa="${home}"→"${homeNorm}" timeFora="${away}"→"${awayNorm}"`);
+
+    // ═══════════════════════════════════════════
     //  DETERMINAR FAVORITO
     // ═══════════════════════════════════════════
-    const teamStrengthMap = {
-      "Brasil": 0.75, "Argentina": 0.75, "França": 0.75, "Inglaterra": 0.78,
-      "Espanha": 0.78, "Alemanha": 0.80, "Portugal": 0.80,
-      "Uruguai": 0.85, "Bélgica": 0.85, "Holanda": 0.85, "Colômbia": 0.88,
-      "Croácia": 0.88, "Marrocos": 0.88,
-      "Japão": 1.00, "Coreia do Sul": 1.00, "Austrália": 1.00, "Suíça": 1.00,
-      "Senegal": 1.00, "Egito": 1.05, "Equador": 1.05, "Costa do Marfim": 1.05,
-      "México": 1.05, "Irã": 1.05, "Tunísia": 1.05, "Arábia Saudita": 1.10,
-      "Panamá": 1.10, "Canadá": 1.10, "Noruega": 1.10,
-      "Gana": 1.20, "Escócia": 1.20, "Paraguai": 1.20, "Suécia": 1.20,
-      "Áustria": 1.20, "Turquia": 1.25, "Catar": 1.25,
-      "Tchéquia": 1.35, "África do Sul": 1.35, "RD Congo": 1.35,
-      "Bósnia": 1.35, "Argélia": 1.35, "Iraque": 1.40,
-      "Uzbequistão": 1.50, "Jordânia": 1.50, "Haiti": 1.50,
-      "Cabo Verde": 1.50, "Curaçao": 1.50, "Nova Zelândia": 1.50, "Bolívia": 1.50,
-      "Real Madrid": 0.70, "Barcelona": 0.70, "Manchester City": 0.72, "Liverpool": 0.72,
-      "Arsenal": 0.75, "Bayern Munich": 0.72, "PSG": 0.75, "Inter Milão": 0.78,
-      "Atlético Madrid": 0.78, "Napoli": 0.80, "Borussia Dortmund": 0.80,
-      "Chelsea": 0.82, "Juventus": 0.82, "Tottenham": 0.85, "Newcastle": 0.85,
-      "Flamengo": 0.80, "Palmeiras": 0.80, "São Paulo": 0.90, "Botafogo": 0.90,
-    };
-
-    const homeStrength = teamStrengthMap[home] || 1.0;
-    const awayStrength = teamStrengthMap[away] || 1.0;
+    const homeStrength = teamStrengthMap[homeNorm] || 1.0;
+    const awayStrength = teamStrengthMap[awayNorm] || 1.0;
     const homeIsFavorite = homeStrength < awayStrength;
     const awayIsFavorite = awayStrength < homeStrength;
     const strengthDiff = Math.abs(homeStrength - awayStrength);
@@ -420,6 +531,8 @@ async function autoGenerateSelections(isRegen = false) {
     } else {
       isFav = 'away'; isUnd = 'home'; favPool = awayPlayers; undPool = homePlayers;
     }
+    const nivelFav = !isFav ? 'equilibrado' : (strengthDiff > 0.20 ? 'favorito claro' : 'favorito leve');
+    console.log(`[Distribuição] favorito=${isFav || 'nenhum'} nivelFavoritismo="${nivelFav}" diff=${strengthDiff.toFixed(2)}`);
 
     // Gerar os 4 bilhetes
     for (let tIdx = 0; tIdx < 4; tIdx++) {
@@ -457,6 +570,10 @@ async function autoGenerateSelections(isRegen = false) {
       // Tickets 1/3: inverter ordem para variar entre pares
       if (tIdx === 1 || tIdx === 3) teamOrder = [...teamOrder].reverse();
 
+      const favCount = teamOrder.filter(s => s === isFav).length;
+      const undCount = teamOrder.filter(s => s === isUnd).length;
+      console.log(`[Distribuição] Bilhete ${tIdx}: numSelections=${numSelections} teamOrder=[${teamOrder.join(',')}] favorito=${isFav||'?'} und=${isUnd||'?'} esperado=${favCount}xFav + ${undCount}xUnd`);
+
       // Tentar gerar (sem loop de tentativas – deterministico)
       const usedNames = new Set();
       const usedMarkets = new Set();
@@ -486,7 +603,7 @@ async function autoGenerateSelections(isRegen = false) {
               usedMarkets.add(altKey);
               const mt = marketTypes.find(m => m.key === altKey);
               const odd = altPlayer.markets?.[altKey] || (altKey === 'scorer' ? 2.50 : altKey === 'assist' ? 3.50 : 7.00);
-              selectedSelections.push({ title: mt.format(altPlayer.name), market: mt.label, odd, status: 'ganho', subplus: true });
+              selectedSelections.push({ title: mt.format(altPlayer.name), market: mt.label, odd, status: 'ganho', subplus: true, team: isHome ? homeNorm : awayNorm, playerName: altPlayer.name });
               combinedOdd *= odd;
             }
           }
@@ -497,7 +614,7 @@ async function autoGenerateSelections(isRegen = false) {
         usedMarkets.add(marketKey);
         const mt = marketTypes.find(m => m.key === marketKey);
         const odd = player.markets?.[marketKey] || (marketKey === 'scorer' ? 2.50 : marketKey === 'assist' ? 3.50 : marketKey === 'header' ? 7.00 : 8.50);
-        selectedSelections.push({ title: mt.format(player.name), market: mt.label, odd, status: 'ganho', subplus: Math.random() > 0.3 });
+        selectedSelections.push({ title: mt.format(player.name), market: mt.label, odd, status: 'ganho', subplus: Math.random() > 0.3, team: isHome ? homeNorm : awayNorm, playerName: player.name });
         combinedOdd *= odd;
       }
 
@@ -513,21 +630,65 @@ async function autoGenerateSelections(isRegen = false) {
         const odd = (pool, key) => best(pool, key, 1.0)?.markets?.[key] || (key === 'scorer' ? 2.50 : key === 'assist' ? 3.50 : key === 'header' ? 7.00 : 8.50);
 
         if (isGoalAssist) {
+          const fScorer = best(fPool, 'scorer', fOpp);
+          const fAssist = best(fPool, 'assist', fOpp);
+          const uScorer = best(uPool, 'scorer', uOpp);
+          const undTeamName = fSide === 'home' ? awayNorm : homeNorm;
+          const favTeamName = fSide === 'home' ? homeNorm : awayNorm;
           selectedSelections = [
-            { title: `Para ${best(fPool, 'scorer', fOpp)?.name || 'Jogador'} marcar`, market: "Para Marcar", odd: odd(fPool, 'scorer'), status: 'ganho', subplus: true },
-            { title: `${best(fPool, 'assist', fOpp)?.name || 'Jogador'} - Para Dar Assistência`, market: "Jogador a Dar Assistência", odd: odd(fPool, 'assist'), status: 'ganho', subplus: true },
-            { title: `Para ${best(uPool, 'scorer', uOpp)?.name || 'Jogador'} marcar`, market: "Para Marcar", odd: odd(uPool, 'scorer'), status: 'ganho', subplus: false }
+            { title: `Para ${fScorer?.name || 'Jogador'} marcar`, market: "Para Marcar", odd: odd(fPool, 'scorer'), status: 'ganho', subplus: true, team: favTeamName, playerName: fScorer?.name },
+            { title: `${fAssist?.name || 'Jogador'} - Para Dar Assistência`, market: "Jogador a Dar Assistência", odd: odd(fPool, 'assist'), status: 'ganho', subplus: true, team: favTeamName, playerName: fAssist?.name },
+            { title: `Para ${uScorer?.name || 'Jogador'} marcar`, market: "Para Marcar", odd: odd(uPool, 'scorer'), status: 'ganho', subplus: false, team: undTeamName, playerName: uScorer?.name }
           ];
         } else {
+          const fHeader = best(fPool, 'header', fOpp);
+          const fOutside = best(fPool, 'outsideBox', fOpp);
+          const favTeamName = fSide === 'home' ? homeNorm : awayNorm;
           selectedSelections = [
-            { title: `Para ${best(fPool, 'header', fOpp)?.name || 'Jogador'} marcar um Cabeceio`, market: "Marcar de Cabeça", odd: odd(fPool, 'header'), status: 'ganho', subplus: true },
-            { title: `Para ${best(fPool, 'outsideBox', fOpp)?.name || 'Jogador'} marcar de Fora da Área`, market: "Marcar de Fora da Área", odd: odd(fPool, 'outsideBox'), status: 'ganho', subplus: false }
+            { title: `Para ${fHeader?.name || 'Jogador'} marcar um Cabeceio`, market: "Marcar de Cabeça", odd: odd(fPool, 'header'), status: 'ganho', subplus: true, team: favTeamName, playerName: fHeader?.name },
+            { title: `Para ${fOutside?.name || 'Jogador'} marcar de Fora da Área`, market: "Marcar de Fora da Área", odd: odd(fPool, 'outsideBox'), status: 'ganho', subplus: false, team: favTeamName, playerName: fOutside?.name }
           ];
         }
         combinedOdd = selectedSelections.reduce((a, s) => a * s.odd, 1);
       }
 
       tickets[tIdx].selections = selectedSelections;
+
+      // ─── VALIDAÇÃO FINAL: garantir cota por time ─────
+      const favNameRaw = isFav === 'home' ? home : isFav === 'away' ? away : null;
+      const undNameRaw = isUnd === 'home' ? home : isUnd === 'away' ? away : null;
+      const favNorm = favNameRaw ? normalizeTeamName(favNameRaw) : null;
+      const undNorm = undNameRaw ? normalizeTeamName(undNameRaw) : null;
+      if (isClearFav && favNorm && undNorm) {
+        const actualFav = selectedSelections.filter(s => s.team === favNorm).length;
+        const actualUnd = selectedSelections.filter(s => s.team === undNorm).length;
+        if (actualUnd > actualFav) {
+          console.warn(`⚠️ [Distribuição] Bilhete ${tIdx}: VIOLAÇÃO! Und(${actualUnd}) > Fav(${actualFav}). Corrigindo...`);
+          // Trocar o último und selecionado pelo melhor fav disponível
+          const lastUndIdx = [...selectedSelections].reverse().findIndex(s => s.team === undNorm);
+          if (lastUndIdx >= 0) {
+            const realIdx = selectedSelections.length - 1 - lastUndIdx;
+            const altKey = marketOrder[realIdx % marketOrder.length];
+            const bestFav = pickBest(favPool, altKey, new Set(selectedSelections.map(s => s.playerName).filter(Boolean)), isFav === 'home' ? awayStrength : homeStrength);
+            if (bestFav) {
+              const mt = marketTypes.find(m => m.key === altKey);
+              selectedSelections[realIdx] = {
+                title: mt.format(bestFav.name),
+                market: mt.label,
+                odd: bestFav.markets?.[altKey] || (altKey === 'scorer' ? 2.50 : altKey === 'assist' ? 3.50 : 7.00),
+                status: 'ganho',
+                subplus: true,
+                team: favNorm,
+                playerName: bestFav.name
+              };
+              combinedOdd = selectedSelections.reduce((a, s) => a * s.odd, 1);
+              tickets[tIdx].selections = selectedSelections;
+              console.log(`✅ [Distribuição] Bilhete ${tIdx}: corrigido → trocou por ${bestFav.name}`);
+            }
+          }
+        }
+      }
+      console.log(`[Distribuição] Bilhete ${tIdx}: final=${selectedSelections.map(s=>s.playerName||s.title).join(', ')}`);
     }
 
     loadActiveTicketState();
